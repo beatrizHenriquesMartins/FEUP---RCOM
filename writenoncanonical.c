@@ -81,13 +81,12 @@ int main(int argc, char** argv)
    /* for (i = 0; i < 255; i++) {
       buf[i] = 'a';
     }*/
-    printf("1");
     gets(buf);
     
     res = write(fd,buf,strlen(buf)+1);   
     printf("%d bytes written\n", res);
  
-    int i = 0;
+    i = 0;
     while (STOP==FALSE) {       /* loop for input */
       res = read(fd,buf+i,1);   /* returns after 5 chars have been input */
       if(res > 0) {		/* so we can printf... */
