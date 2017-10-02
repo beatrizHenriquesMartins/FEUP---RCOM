@@ -6,7 +6,7 @@
 #include <termios.h>
 #include <stdio.h>
 
-
+//dew
 #define BAUDRATE B38400
 #define _POSIX_SOURCE 1 /* POSIX compliant source */
 #define FALSE 0
