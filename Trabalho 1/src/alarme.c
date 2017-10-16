@@ -1,29 +1,43 @@
-#include <unistd.h>
+#include "alarme.h"
+
+#include "dataLink.h"
 #include <signal.h>
 #include <stdio.h>
+#include <unistd.h>
 
-int flag=1, conta=1;
+int alarmWentOff = 0;
 
-void atende()                   // atende alarme
-{
-	printf("alarme # %d\n", conta);
-	flag=1;
-	conta++;
+void alarmHandler(int signal) {
+  if (signal != SIGALRM)
+    return;
+
+  alarmWentOff = TRUE;
+  ll->stats->timeouts++;
+  printf("Connection time out!\n\nRetrying:\n");
+
+  alarm(ll->timeout);
 }
 
+void setAlarm() {
+  struct sigaction action;
+  action.sa_handler = alarmHandler;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
 
-main()
-{
+  sigaction(SIGALRM, &action, NULL);
 
-(void) signal(SIGALRM, atende);  // instala  rotina que atende interrupcao
+  alarmWentOff = FALSE;
 
-while(conta < 4){
-   if(flag){
-      alarm(3);                 // activa alarme de 3s
-      flag=0;
-   }
-}
-printf("Vou terminar.\n");
-
+  alarm(ll->timeout);
 }
 
+void stopAlarm() {
+  struct sigaction action;
+  action.sa_handler = NULL;
+  sigemptyset(&action.sa_mask);
+  action.sa_flags = 0;
+
+  sigaction(SIGALRM, &action, NULL);
+
+  alarm(0);
+}
