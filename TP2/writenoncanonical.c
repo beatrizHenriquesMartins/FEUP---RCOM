@@ -24,9 +24,14 @@
 
 volatile int STOP = FALSE;
 
+//llopen receptor
 int llopen(int port, int flag){
+//main
   int fd = open(argv[1], O_RDWR | O_NOCTTY );
-  if (fd <0) {perror(argv[1]); exit(-1); }
+  if (fd < 0) {
+    perror(argv[1]);
+    exit(-1);
+  }
 
   if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
@@ -41,32 +46,16 @@ int llopen(int port, int flag){
   /* set input mode (non-canonical, no echo,...) */
   newtio.c_lflag = 0;
 
-  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-  newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
+  newtio.c_cc[VTIME] = 1;   /* inter-character timer unused */
+  newtio.c_cc[VMIN]  = 0;   /* blocking read until 5 chars received */
+//
 
+  char set = char[5];
   return fd;
 }
 
 int llread(int fd, char *buffer){
-  int i = 0;
-  int res;
 
-  while (STOP == FALSE) {       /* loop for input */
-    res = read(fd,buffer+i,1);   /* returns after 5 chars have been input */
-    if(res > 0) {		/* so we can printf... */
-         if (buffer[i]=='\0'){
-           STOP = TRUE;
-         }
-         i++;
-     }
-  }
-
-  res = write(fd,buffer,strlen(buffer)+1);
-  printf("%d bytes written\n", res);
-
-  printf(":%s:%d\n", buffer, strlen(buf));
-
-  return res;
 }
 
 int main(int argc, char** argv){

@@ -23,11 +23,12 @@
 
 volatile int STOP=FALSE;
 
-int llopen(int port, char flag){
+
+  /*
     int fd = open(port, O_RDWR | O_NOCTTY );
     if (fd <0) {perror(port); return(-1); }
 
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+    if ( tcgetattr(fd,&oldtio) == -1) { // save current port settings
       perror("tcgetattr");
       return(-1);
     }
@@ -37,15 +38,42 @@ int llopen(int port, char flag){
     newtio.c_iflag = IGNPAR;
     newtio.c_oflag = 0;
 
-    /* set input mode (non-canonical, no echo,...) */
+    //set input mode (non-canonical, no echo,...)
     newtio.c_lflag = 0;
     if(flag == TRANSMITTER) {
     } else if (flag == RECEIVER) {
     }
 
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
-    
+    newtio.c_cc[VTIME]    = 1;   // inter-character timer unused
+    newtio.c_cc[VMIN]     = 0;   // blocking read until 5 chars received /
+*/
+
+int llopen(int port){
+  //mudar port para fd
+    char set[5] = {0x7E, 0x03,0x03,0x00,0x7E};
+    char ua[5] = {0x7E, 0x03,0x07,0x04,0x7E};
+
+    int i = 0;
+    int res;
+    char* buffer;
+
+    write(port, set);
+    while (STOP == FALSE) {       /* loop for input */
+      res = read(port,buffer+i,1);   /* returns after 5 chars have been input */
+      if(res > 0) {		/* so we can printf... */
+           if (buffer[i] == 0x7E){
+
+           }
+           i++;
+       }
+    }
+
+    res = write(fd,buffer,strlen(buffer)+1);
+    printf("%d bytes written\n", res);
+
+    printf(":%s:%d\n", buffer, strlen(buf));
+
+    return res;
     return fd;
 }
 
@@ -56,11 +84,11 @@ int llread(int fd, char *buffer){
       if(res > 0) {		/* so we can printf... */
            if (buffer[i]=='\0') STOP=TRUE;
 	   i++;
-	}   
+	}
     }
     printf(":%s:%d\n", buffer, strlen(buffer));
 
-    res = write(fd,buf,strlen(buffer)+1);   
+    res = write(fd,buf,strlen(buffer)+1);
     printf("%d bytes written\n", res);
     return res;
 }
@@ -73,8 +101,8 @@ int main(int argc, char** argv)
     struct termios oldtio,newtio;
     char buf[255];
 
-    if ( (argc < 2) || 
-  	     ((strcmp("/dev/ttyS0", argv[1])!=0) && 
+    if ( (argc < 2) ||
+  	     ((strcmp("/dev/ttyS0", argv[1])!=0) &&
   	      (strcmp("/dev/ttyS1", argv[1])!=0) )) {
       printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
       exit(1);
@@ -87,10 +115,10 @@ int main(int argc, char** argv)
   */
    if(fd = llopen(argv[1],RECEIVER)== -1)
       exit(-1);
-    
-  /* 
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) próximo(s) caracter(es)
+
+  /*
+    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a
+    leitura do(s) prï¿½ximo(s) caracter(es)
   */
 
     tcflush(fd, TCIOFLUSH);
@@ -105,8 +133,8 @@ int main(int argc, char** argv)
 
     llread(fd,buf);
 
-  /* 
-    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no guião 
+  /*
+    O ciclo WHILE deve ser alterado de modo a respeitar o indicado no guiï¿½o
   */
 
     sleep(1);
