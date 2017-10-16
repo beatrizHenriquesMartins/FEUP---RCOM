@@ -12,6 +12,10 @@
 #define FALSE 0
 #define TRUE 1
 
+// VTIME e VMIN alterados
+#define VTIME 1
+#define VMIN 0
+
 volatile int STOP=FALSE;
 
 int main(int argc, char** argv)
@@ -73,33 +77,34 @@ int main(int argc, char** argv)
     printf("New termios structure set\n");
 
 
-
-    for (i = 0; i < 255; i++) {
+    //Escrever para o buffer
+   /* for (i = 0; i < 255; i++) {
       buf[i] = 'a';
-    }
+    }*/
+    gets(buf);
     
-    /*testing*/
-    buf[25] = '\n';
-    
-    res = write(fd,buf,255);   
+    res = write(fd,buf,strlen(buf)+1);   
     printf("%d bytes written\n", res);
  
+    i = 0;
+    while (STOP==FALSE) {       /* loop for input */
+      res = read(fd,buf+i,1);   /* returns after 5 chars have been input */
+      if(res > 0) {		/* so we can printf... */
+           if (buf[i]=='\0') STOP=TRUE;
+	   i++;
+	}   
+    }
+    printf(":%s:%d\n", buf, strlen(buf));
 
   /* 
     O ciclo FOR e as instruções seguintes devem ser alterados de modo a respeitar 
     o indicado no guião 
   */
 
-
-
-   
     if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
       perror("tcsetattr");
       exit(-1);
     }
-
-
-
 
     close(fd);
     return 0;

@@ -11,6 +11,10 @@
 #define FALSE 0
 #define TRUE 1
 
+// VTIME e VMIN alterados
+#define VTIME 1
+#define VMIN 0
+
 volatile int STOP=FALSE;
 
 int main(int argc, char** argv)
@@ -70,14 +74,18 @@ int main(int argc, char** argv)
 
     printf("New termios structure set\n");
 
-
+    int i = 0;
     while (STOP==FALSE) {       /* loop for input */
-      res = read(fd,buf,255);   /* returns after 5 chars have been input */
-      buf[res]=0;               /* so we can printf... */
-      printf(":%s:%d\n", buf, res);
-      if (buf[0]=='z') STOP=TRUE;
+      res = read(fd,buf+i,1);   /* returns after 5 chars have been input */
+      if(res > 0) {		/* so we can printf... */
+           if (buf[i]=='\0') STOP=TRUE;
+	   i++;
+	}   
     }
+    printf(":%s:%d\n", buf, strlen(buf));
 
+    res = write(fd,buf,strlen(buf)+1);   
+    printf("%d bytes written\n", res);
 
 
   /* 
