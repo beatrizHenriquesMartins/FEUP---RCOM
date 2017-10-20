@@ -97,9 +97,9 @@ int open_receiver(char *port) {
   alarm(0);
 
   int res;
-  do {
-    res = write(fd, controlByte, sizeof(controlByte));
-  } while (res == 0);
+  do{
+    res = write(fd,&controlByte,sizeof(controlByte));
+  }while (res == 0);
 
   return fd;
 }
@@ -271,8 +271,24 @@ char readingArrayStatus(int fd) {
   return -1;
 }
 
-int llopen(char *port, int whoCalls) {
-  if (whoCalls == RECEIVER) {
+int resetSettings(int fd) {
+/*
+  if (sigaction(SIGALRM, &data_link.old_action, NULL) == -1)
+    printf("Error setting SIGALRM handler to original.\n");
+
+  if (tcsetattr(fd, TCSANOW, &old_port_settings) == -1)
+    printf("Error settings old port settings.\n");
+*/
+  if (close(fd)) {
+    return -1;
+    printf("Error closing terminal file descriptor.\n");
+  }
+
+  return 0;
+}
+
+int llopen(char* port, int whoCalls){
+  if (whoCalls == RECEIVER){
     open_receiver(port);
   } else if (whoCalls == SENDER) {
     open_sender(port);
@@ -282,117 +298,19 @@ int llopen(char *port, int whoCalls) {
   return 0;
 }
 
-int llread(int fd, char *buffer) {
-  int ret, sizeAfterDestuffing;
+int llclose(int fd, int whoCalls){
+  char* frame = NULL;
+  int lenFrame = 0;
 
-  readingFrame(fd, buffer);
-
-  sizeAfterDestuffing = destuffing(buffer);
-
-  if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
-    ret = processingDataFrame(buffer);
-  }
-
-  if (ret == 0) {
-    ret = sizeAfterDestuffing;
-  }
-
-  return ret;
-}
-
-int processingDataFrame(char *frame) {
-
-  int ret = 0;
-
-  if (frame[0] != FLAG) {
-    return -1;
-  }
-
-  if (frame[1] != A_SENDER) {
-    return -1;
-  }
-
-  if (frame[2] != N_OF_SEQ_0 && frame[2] != N_OF_SEQ_1) {
-    return -1;
-  }
-
-  if (frame[3] != (frame[1] ^ frame[2])) {
-    printf("BCC1 recebido: %X\n", frame[3]);
-    printf("BCC1 esperado: %X\n", frame[1] ^ frame[2]);
-    printf("ERRO BCC1\n");
-    return -1;
-  }
-
-  return ret;
-}
-
-int readingFrame(int fd, char *frame) {
-  unsigned char oneByte;
-  int state = 0;
-  int over = 0;
-  int i = 0;
-
-  //(void)signal(SIGALRM, timeout);
-
-  while (!over) {
-    alarm(timeoutTime);
-    read(fd, &oneByte, 1);
-    alarm(timeoutTime);
-
-    switch (state) {
-    case 0:
-      if (oneByte == FLAG) {
-        frame[i] = oneByte;
-        i++;
-        state = 1;
-      }
-      break;
-    case 1:
-      if (oneByte != FLAG) {
-        frame[i] = oneByte;
-        i++;
-        state = 2;
-      }
-      break;
-    case 2:
-      if (oneByte != FLAG) {
-        frame[i] = oneByte;
-        i++;
-        state = 3;
-      }
-      break;
-    case 3:
-      if (oneByte != FLAG) {
-        frame[i] = oneByte;
-        i++;
-        state = 4;
-      }
-      break;
-    case 4:
-      if (oneByte != FLAG) {
-        frame[i] = oneByte;
-        i++;
-      } else if (oneByte == FLAG) {
-        frame[i] = oneByte;
-        i++;
-        over = 1;
-      }
-      break;
-    default:
-      break;
+  if(whoCalls == SENDER){
+    createControlFrame(frame, C_DISC, whoCalls);
+    if(sendImportantFrame(fd, frame, lenFrame) != 0){
+      printf("Couldn't send frame on llclose().\n");
+      resetSettings(fd);
     }
+  }else if (whoCalls == RECEIVER){
+
   }
 
-  return i;
-}
-
-int llwrite(int fd, char *buffer, int length) {
-  int sequenceNumber = buffer[length - 1];
-  int nRej = 0;
-
-  length--;
-  // frame[0] = FLAG;
-  // frame[1] = A_SENDER;
-  // frame[2] = sequenceNumber;
-  // frame[3] = frame[1] ^ frame[2];
+  return 0;
 }

@@ -60,19 +60,13 @@ void createControlFrame(char *frame, char controlByte, int whoCalls);
    maquina de estados */
 char readingArrayStatus(int fd);
 
-/* complete */
-int processingDataFrame(char *frame);
-
-/* complete */
-int readingFrame(int fd, char *frame);
-
-/*************/
+int resetSettings(int fd);
 
 int llopen(char* port,int whoCalls);
 
 int llwrite(int fd, char* buffer, int length);
 
-int llclose(int fd);
+int llclose(int fd, int whoCalls);
 
 int llread(int fd, char* buffer);
 
