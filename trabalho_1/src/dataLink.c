@@ -4,6 +4,7 @@
 struct termios oldtio,newtio;
 
 int open_serial_port(char* port, int whoCalls){
+  printf("open_serial_port\n");
   int fd;
   char serialPort[10] = "/dev/ttyS";
   strcat(serialPort,port);
@@ -45,6 +46,7 @@ int open_serial_port(char* port, int whoCalls){
 }
 
 int open_receiver(char* port){
+  printf("open_receiver\n");
   int fd;
   fd = open_serial_port(port,RECEIVER);
   char controlByte = readingArrayStatus(fd);
@@ -52,14 +54,17 @@ int open_receiver(char* port){
 }
 
 int open_sender(char* port){
-  char * set_frame = NULL;
+  printf("open_sender\n");
+  char * set_frame = malloc(5);
   int fd = open_serial_port(port,SENDER);
   createControlFrame(set_frame,C_SET,SENDER);
   sendImportantFrame(fd,set_frame,5);
+      printf("depois send important\n");
   return fd;
 }
 
 int sendImportantFrame(int fd, char* frame, int length ){
+  printf("sttufing\n");
   stuffing(frame,&length);
   int res;
   int tries = 0;
@@ -85,12 +90,18 @@ void insertValueAt(int index, int value, char* frame, int lenght){
 
 void stuffing(char* frame, int *length){
   int i;
+  printf("dentro do stuff, len = %d\n", *length);
   int allocated_space = *length;
   for ( i = 0; i < *length; i++){
+    printf("dentro ciclo\n");
+    printf("frame[0]= 0x%02X\n",frame[0] );
     if (frame[i] == ESC || frame[i] == FLAG){
+
       if ((*length) >= allocated_space){
         allocated_space = 2 * (*length);
-        frame = (char *) realloc(frame, allocated_space);
+        printf("antes realloc\n");
+        frame = realloc(frame, allocated_space);
+        printf("depois do realloc\n");
       }
       frame[i] = frame[i] ^ 0x20;
       insertValueAt(i,ESC,frame,*length);
@@ -102,7 +113,6 @@ void stuffing(char* frame, int *length){
 
 void createControlFrame(char *frame, char controlByte, int whoCalls){
   int isAnswer = 0;
-  frame = malloc(5 * sizeof(char));
   frame[0] = FLAG;
   if(controlByte == C_UA || controlByte == C_RR || controlByte == C_REJ ){
     isAnswer=1; //
