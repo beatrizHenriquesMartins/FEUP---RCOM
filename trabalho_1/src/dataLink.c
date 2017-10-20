@@ -1,6 +1,12 @@
 #include "dataLink.h"
 
+int timeoutTime = 3;
 struct termios oldtio, newtio;
+
+void timeout() {
+  printf("TIMEOUT : Connection lost, try again later\n");
+  exit(1);
+}
 
 int open_serial_port(char *port, int whoCalls) {
   printf("open_serial_port\n");
@@ -56,12 +62,12 @@ int open_receiver(char *port) {
   printf("open_receiver\n");
   int fd;
 
-  //(void)signal(SIGALRM, timeout);
+  (void)signal(SIGALRM, timeout);
   fd = open_serial_port(port, RECEIVER);
 
-  // alarm(timeoutTime);
+  alarm(timeoutTime);
   char controlByte = readingArrayStatus(fd);
-  // alarm(0);
+  alarm(0);
 
   int res;
   do {
@@ -302,9 +308,9 @@ int readingFrame(int fd, char *frame) {
   //(void)signal(SIGALRM, timeout);
 
   while (!over) {
-    // alarm(timeoutTime);
+    alarm(timeoutTime);
     read(fd, &oneByte, 1);
-    // alarm(timeoutTime);
+    alarm(timeoutTime);
 
     switch (state) {
     case 0:
