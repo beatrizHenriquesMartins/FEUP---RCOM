@@ -28,6 +28,7 @@
 /* complete */
 int open_serial_port(char* port, int whoCalls);
 
+/* complete */
 int open_receiver(char* port);
 
 /* complete */
