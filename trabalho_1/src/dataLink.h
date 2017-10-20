@@ -25,20 +25,29 @@
 #define C_RR 0x05
 #define C_REJ 0x01
 
-
+/* complete */
 int open_serial_port(char* port, int whoCalls);
 
 int open_receiver(char* port);
 
+/* complete */
 int open_sender(char* port);
 
+/* complete - alarm */
 int sendImportantFrame(int fd, char* frame, int length );
 
+/* complete */
 void insertValueAt(int index, int value, char* frame, int lenght);
 
+/* complete */
 void stuffing(char* frame, int *length);
 
+/* complete */
 void createControlFrame(char *frame, char controlByte, int whoCalls);
+
+/* complete
+   maquina de estados */
+char readingArrayStatus(int fd);
 
 int llopen(char* port,int whoCalls);
 
@@ -47,7 +56,5 @@ int llwrite(int fd, char* buffer, int length);
 int llclose(int fd);
 
 int llread(int fd, char* buffer);
-
-char readingArrayStatus(int fd);
 
 #endif
