@@ -1,13 +1,40 @@
 #include "dataLink.h"
 
+int frameSize = 0;
+int numberOfTries = 3;
 int timeoutTime = 3;
+int numberOfTimeOuts = 0;
+int success = 0;
+int tries = 0;
 struct termios oldtio, newtio;
 
+/*void retry() {
+  alarm(timeoutTime);
+  write(fd, frame, frameSize);
+  numberOfTimeOuts++;
+
+  if (triesPackets == numberOfTries) {
+    printf(
+        "\n\nTIMEOUT : Lost connection to receiver\n Number of tries : %d\n\n",
+        numberOfTries);
+    exit(1);
+  }
+
+  triesPackets++;
+  printf("\n\nTrying to connect to receiver\nTry number : %d\n\n",
+         triesPackets);
+}
+*/
 void timeout() {
   printf("TIMEOUT : Connection lost, try again later\n");
   exit(1);
 }
 
+/**
+ *
+ * Funções
+ *
+ */
 int open_serial_port(char *port, int whoCalls) {
   printf("open_serial_port\n");
   int fd;
@@ -93,13 +120,13 @@ int sendImportantFrame(int fd, char *frame, int length) {
   printf("sttufing\n");
   stuffing(frame, &length);
   int res;
-  int tries = 0;
+  tries = 0;
   do {
     res = write(fd, frame, length);
     sleep(1);
     tries++;
-  } while (res < 0 && tries < 3);
-  if (tries == 3) {
+  } while (res < 0 && tries < numberOfTries);
+  if (tries == numberOfTries) {
     perror("Can not write to serial port");
     return -1;
   }
@@ -357,4 +384,15 @@ int readingFrame(int fd, char *frame) {
   }
 
   return i;
+}
+
+int llwrite(int fd, char *buffer, int length) {
+  int sequenceNumber = buffer[length - 1];
+  int nRej = 0;
+
+  length--;
+  // frame[0] = FLAG;
+  // frame[1] = A_SENDER;
+  // frame[2] = sequenceNumber;
+  // frame[3] = frame[1] ^ frame[2];
 }
