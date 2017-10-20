@@ -54,6 +54,7 @@ int open_sender(char* port){
   char * set_frame = NULL;
   int fd = open_serial_port(port,SENDER);
   createControlFrame(set_frame,C_SET,SENDER);
+  sendImportantFrame(fd,set_frame,5);
   return fd;
 }
 
