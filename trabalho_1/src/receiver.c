@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "dataLink.h"
 
-int main(int argc, char** argv){
+int main(int argc, char *argv[]){
   int fd;
   if (argc < 2){
     perror("Invalid num of arguments");
