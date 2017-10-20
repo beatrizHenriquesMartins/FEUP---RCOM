@@ -47,6 +47,7 @@ int open_serial_port(char* port, int whoCalls){
 int open_receiver(char* port){
   int fd;
   fd = open_serial_port(port,RECEIVER);
+  char controlByte = readingArrayStatus(fd);
   return fd;
 }
 
@@ -107,9 +108,9 @@ void createControlFrame(char *frame, char controlByte, int whoCalls){
     isAnswer=1; //
   }
   if (whoCalls == SENDER){
-    (isAnswer) ? (frame[1] = ARECEIVER) : (frame[1] = ASENDER);
+    (isAnswer) ? (frame[1] = A_RECEIVER) : (frame[1] = A_SENDER);
   }else{
-    (isAnswer) ? (frame[1] = ASENDER) : (frame[1] = ARECEIVER);
+    (isAnswer) ? (frame[1] = A_SENDER) : (frame[1] = A_RECEIVER);
   }
   frame[2] = controlByte;
   frame[3] = frame[1] ^ frame[2];
@@ -125,4 +126,61 @@ int llopen(char* port, int whoCalls){
     return -1;
   }
   return 0;
+}
+
+char readingArrayStatus(int fd){
+  int state = 0;
+  char frame_receive[5];
+  char var;
+
+  while(state!=5){
+    int res = read(fd,&var,1);
+    frame_receive[state] = var;
+    if(res>0){
+      switch (state) {
+        case 0:{
+          if(var == FLAG){
+            state = 1;
+          }
+          break;
+        }
+        case 1:{
+          if(var != FLAG){
+            state = 2;
+          }else{
+            state =  1;
+          }
+          break;
+        }
+        case 2:{
+          if(var != FLAG){
+            state = 3;
+          }else{
+            state =  1;
+          }
+          break;
+        }
+        case 3:{
+          if(var == (frame_receive[2]^frame_receive[1])){
+            state = 4;
+          }else{
+            perror("Damage package");
+            return -1;
+          }
+          break;
+        }
+        case 4:{
+          if(var != FLAG){
+            state = 0;
+          }else{
+            state =  5;
+          }
+          break;
+        }
+      }
+    }
+    return frame_receive[2];
+  }
+  perror("Damage package");
+  return -1;
 }
