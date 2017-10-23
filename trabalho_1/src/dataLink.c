@@ -272,75 +272,6 @@ char readingArrayStatus(int fd) {
   return -1;
 }
 
-int resetSettings(int fd) {
-  printf("resetSettings\n");
-  if (close(fd)) {
-    return -1;
-    printf("Error closing terminal file descriptor.\n");
-  }
-
-  return 0;
-}
-
-int llwrite(int fd, char *buffer, int length) {
-  int sequenceNumber = buffer[length - 1];
-  int nRej = 0;
-
-  length--;
-  // frame[0] = FLAG;
-  // frame[1] = A_SENDER;
-  // frame[1] = A_SENDER;
-  // frame[3] = frame[1] ^ frame[2];
-}
-
-int llopen(char *port, int whoCalls) {
-  printf("llopen\n");
-  if (whoCalls == RECEIVER) {
-    open_receiver(port);
-  } else if (whoCalls == SENDER) {
-    open_sender(port);
-  } else {
-    return -1;
-  }
-  return 0;
-}
-
-int llread(int fd, char *buffer) {
-  printf("llread\n");
-  int ret, sizeAfterDestuffing;
-
-  readingFrame(fd, buffer);
-
-  sizeAfterDestuffing = destuffing(buffer);
-
-  if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
-    ret = processingDataFrame(buffer);
-  }
-
-  if (ret == 0) {
-    ret = sizeAfterDestuffing;
-  }
-
-  return ret;
-}
-
-int llclose(int fd, int whoCalls) {
-  printf("llclose\n");
-  char *frame = NULL;
-  int lenFrame = 0;
-
-  if (whoCalls == SENDER) {
-    createControlFrame(frame, C_DISC, whoCalls);
-    if (sendImportantFrame(fd, frame, lenFrame) != 0) {
-      printf("Couldn't send frame on llclose().\n");
-      resetSettings(fd);
-    }
-  } else if (whoCalls == RECEIVER) {
-  }
-
-  return 0;
-}
-
 int processingDataFrame(char *frame) {
   printf("processingDataFrame\n");
   int ret = 0;
@@ -426,4 +357,73 @@ int readingFrame(int fd, char *frame) {
   }
 
   return i;
+}
+
+int resetSettings(int fd) {
+  printf("resetSettings\n");
+  if (close(fd)) {
+    return -1;
+    printf("Error closing terminal file descriptor.\n");
+  }
+
+  return 0;
+}
+
+int llopen(char *port, int whoCalls) {
+  printf("llopen\n");
+  if (whoCalls == RECEIVER) {
+    open_receiver(port);
+  } else if (whoCalls == SENDER) {
+    open_sender(port);
+  } else {
+    return -1;
+  }
+  return 0;
+}
+
+int llwrite(int fd, char *buffer, int length) {
+  int sequenceNumber = buffer[length - 1];
+  int nRej = 0;
+
+  length--;
+  // frame[0] = FLAG;
+  // frame[1] = A_SENDER;
+  // frame[1] = A_SENDER;
+  // frame[3] = frame[1] ^ frame[2];
+}
+
+int llclose(int fd, int whoCalls) {
+  printf("llclose\n");
+  char *frame = NULL;
+  int lenFrame = 0;
+
+  if (whoCalls == SENDER) {
+    createControlFrame(frame, C_DISC, whoCalls);
+    if (sendImportantFrame(fd, frame, lenFrame) != 0) {
+      printf("Couldn't send frame on llclose().\n");
+      resetSettings(fd);
+    }
+  } else if (whoCalls == RECEIVER) {
+  }
+
+  return 0;
+}
+
+int llread(int fd, char *buffer) {
+  printf("llread\n");
+  int ret, sizeAfterDestuffing;
+
+  readingFrame(fd, buffer);
+
+  sizeAfterDestuffing = destuffing(buffer);
+
+  if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
+    ret = processingDataFrame(buffer);
+  }
+
+  if (ret == 0) {
+    ret = sizeAfterDestuffing;
+  }
+
+  return ret;
 }

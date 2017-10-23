@@ -49,10 +49,10 @@ void insertValueAt(int index, int value, char* frame, int lenght);
 void shiftBack(int index, char *frame, int frameSize);
 
 /* complete */
-int destuffing(char *frame);
+void stuffing(char* frame, int *length);
 
 /* complete */
-void stuffing(char* frame, int *length);
+int destuffing(char *frame);
 
 /* complete */
 void createControlFrame(char *frame, char controlByte, int whoCalls);
