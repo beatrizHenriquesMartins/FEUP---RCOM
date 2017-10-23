@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define BAUDRATE B38400
 
@@ -18,6 +19,7 @@
 
 #define A_SENDER 0x03
 #define A_RECEIVER 0x01
+
 #define C_SET 0x03
 #define C_DISC 0x0B
 #define C_UA 0x07

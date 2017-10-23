@@ -1,5 +1,6 @@
 #include "dataLink.h"
 
+int flag = 1;
 int frameSize = 0;
 int numberOfTries = 3;
 int timeoutTime = 3;
@@ -30,6 +31,12 @@ void timeout() {
   exit(1);
 }
 
+// atende alarme
+void atende(){
+	printf("alarme # %d\n", conta);
+	flag = 1;
+	tries++;
+}
 /**
  *
  * Funções
@@ -219,8 +226,9 @@ char readingArrayStatus(int fd) {
   int state = 0;
   char frame_receive[5];
   char var;
-
-  while (state != 5) {
+  flag=0;
+  alarm(3);
+  while (state != 5 && flag == 0) {
     int res = read(fd, &var, 1);
     frame_receive[state] = var;
     if (res > 0) {
@@ -261,6 +269,7 @@ char readingArrayStatus(int fd) {
           state = 0;
         } else {
           state = 5;
+          alarm(0);
         }
         break;
       }
@@ -365,16 +374,42 @@ int resetSettings(int fd) {
     return -1;
     printf("Error closing terminal file descriptor.\n");
   }
+  return 0;
+}
+
+int writeTo_tty(int fd, char *buf, int buf_length) {
+  int totalWrittenChars = 0;
+  int writtenChars = 0;
+
+  while (totalWrittenChars < buf_length) {
+    writtenChars = write(fd, buf, buf_length);
+
+    if (writtenChars <= 0) {
+      printf("Written chars: %d\n", writtenChars);
+      printf("%s\n", strerror(errno));
+      return -1;
+    }
+
+    totalWrittenChars += writtenChars;
+  }
 
   return 0;
 }
 
 int llopen(char *port, int whoCalls) {
   printf("llopen\n");
+  char buffer[5] = NULL;
+  int res = 0;
+  char controlByte = NULL;
   if (whoCalls == RECEIVER) {
     open_receiver(port);
   } else if (whoCalls == SENDER) {
     open_sender(port);
+    createControlFrame(buffer,C_SET,SENDER);
+    do {
+      res = write(fd, frame, length);
+      controlByte = readingArrayStatus(fd);
+    } while(tries < numberOfTries && flag == 1);
   } else {
     return -1;
   }
@@ -392,20 +427,34 @@ int llwrite(int fd, char *buffer, int length) {
   // frame[3] = frame[1] ^ frame[2];
 }
 
-int llclose(int fd, int whoCalls) {
+int llclose(int fd, int whoCalls){
   printf("llclose\n");
+
   char *frame = NULL;
   int lenFrame = 0;
+  int res_resetSet = 0;
 
   if (whoCalls == SENDER) {
     createControlFrame(frame, C_DISC, whoCalls);
+
     if (sendImportantFrame(fd, frame, lenFrame) != 0) {
       printf("Couldn't send frame on llclose().\n");
-      resetSettings(fd);
+      res_resetSet = reset_settings(fd);
+    }
+
+    createControlFrame(frame, C_UA, &lenFrame);
+
+    if (writeTo_tty(fd, frame, lenFrame) != 0) {
+      printf("Couldn't write to tty on llclose()\n");
+      res_resetSet = reset_settings(fd);
+      return -1;
     }
   } else if (whoCalls == RECEIVER) {
+    res_resetSettings = reset_settings(fd)
+    if (res_resetSettings == 0){
+      printf("Connection succesfully closed.\n");
+    }
   }
-
   return 0;
 }
 
