@@ -105,6 +105,7 @@ int open_receiver(char *port) {
 }
 
 int open_sender(char *port) {
+  printf("open_sender\n");
   char *set_frame = NULL;
 
   int fd = open_serial_port(port, SENDER);
@@ -272,13 +273,7 @@ char readingArrayStatus(int fd) {
 }
 
 int resetSettings(int fd) {
-  /*
-    if (sigaction(SIGALRM, &data_link.old_action, NULL) == -1)
-      printf("Error setting SIGALRM handler to original.\n");
-
-    if (tcsetattr(fd, TCSANOW, &old_port_settings) == -1)
-      printf("Error settings old port settings.\n");
-  */
+  printf("resetSettings\n");
   if (close(fd)) {
     return -1;
     printf("Error closing terminal file descriptor.\n");
@@ -299,6 +294,7 @@ int llwrite(int fd, char *buffer, int length) {
 }
 
 int llopen(char *port, int whoCalls) {
+  printf("llopen\n");
   if (whoCalls == RECEIVER) {
     open_receiver(port);
   } else if (whoCalls == SENDER) {
@@ -310,6 +306,7 @@ int llopen(char *port, int whoCalls) {
 }
 
 int llread(int fd, char *buffer) {
+  printf("llread\n");
   int ret, sizeAfterDestuffing;
 
   readingFrame(fd, buffer);
@@ -328,6 +325,7 @@ int llread(int fd, char *buffer) {
 }
 
 int llclose(int fd, int whoCalls) {
+  printf("llclose\n");
   char *frame = NULL;
   int lenFrame = 0;
 
@@ -344,7 +342,7 @@ int llclose(int fd, int whoCalls) {
 }
 
 int processingDataFrame(char *frame) {
-
+  printf("processingDataFrame\n");
   int ret = 0;
 
   if (frame[0] != FLAG) {
@@ -370,6 +368,7 @@ int processingDataFrame(char *frame) {
 }
 
 int readingFrame(int fd, char *frame) {
+  printf("readingFrame\n");
   unsigned char oneByte;
   int state = 0;
   int over = 0;
