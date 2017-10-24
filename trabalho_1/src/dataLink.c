@@ -460,7 +460,7 @@ int llclose(int fd, int whoCalls) {
       return -1;
     }
   } else if (whoCalls == RECEIVER) {
-    res_resetSettings = reset_settings(fd);
+    res_resetSet = reset_settings(fd);
     if (res_resetSet == 0) {
       printf("Connection succesfully closed.\n");
     }
