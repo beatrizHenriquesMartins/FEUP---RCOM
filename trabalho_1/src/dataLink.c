@@ -100,10 +100,12 @@ int open_receiver(char *port) {
   (void)signal(SIGALRM, timeout);
   fd = open_serial_port(port, RECEIVER);
 
+  // RECEIVE TRAMA SET
   alarm(timeoutTime);
   char controlByte = readingArrayStatus(fd);
   alarm(0);
 
+  // WRITE TRAMA UA
   int res;
   do {
     res = write(fd, &controlByte, sizeof(controlByte));
@@ -120,11 +122,16 @@ int open_sender(char *port) {
 
   int fd = open_serial_port(port, SENDER);
 
+  // CREATE AND WRITE TRAMA SET
   createControlFrame(buffer, C_SET, SENDER);
   do {
     res = write(fd, buffer, 5);
     controlByte = readingArrayStatus(port);
+    printf("%x\n", controlByte);
   } while (tries < numberOfTries && flag == 1);
+
+  // RECEIVE TRAMA UA
+  // res = read(fd, );
 
   return fd;
 }
@@ -284,12 +291,12 @@ char readingArrayStatus(int fd) {
         } else {
           state = 5;
           alarm(0);
+          return frame_receive[2];
         }
         break;
       }
       }
     }
-    return frame_receive[2];
   }
   perror("Damage package");
   return -1;
