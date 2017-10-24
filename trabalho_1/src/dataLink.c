@@ -114,13 +114,17 @@ int open_receiver(char *port) {
 
 int open_sender(char *port) {
   printf("open_sender\n");
-  char *set_frame = NULL;
+  char buffer[5];
+  int res = 0;
+  char controlByte = NULL;
 
   int fd = open_serial_port(port, SENDER);
 
-  createControlFrame(set_frame, C_SET, SENDER);
-
-  sendImportantFrame(fd, set_frame, 5);
+  createControlFrame(buffer, C_SET, SENDER);
+  do {
+    res = write(fd, buffer, 5);
+    controlByte = readingArrayStatus(port);
+  } while (tries < numberOfTries && flag == 1);
 
   return fd;
 }
@@ -408,18 +412,12 @@ int writeTo_tty(int fd, char *buf, int buf_length) {
 
 int llopen(char *port, int whoCalls) {
   printf("llopen\n");
-  char buffer[5];
-  int res = 0;
-  char controlByte = NULL;
+
   if (whoCalls == RECEIVER) {
     open_receiver(port);
   } else if (whoCalls == SENDER) {
     open_sender(port);
-    createControlFrame(buffer, C_SET, SENDER);
-    do {
-      res = write(port, buffer, 5);
-      controlByte = readingArrayStatus(port);
-    } while (tries < numberOfTries && flag == 1);
+
   } else {
     return -1;
   }
