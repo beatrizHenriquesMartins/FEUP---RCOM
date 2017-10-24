@@ -103,7 +103,6 @@ int open_receiver(char *port) {
   // RECEIVE TRAMA SET
   alarm(timeoutTime);
   char controlByte = readingArrayStatus(fd);
-  printf("%x\n", controlByte);
   alarm(0);
 
   // WRITE TRAMA UA
@@ -127,18 +126,11 @@ int open_sender(char *port) {
 
   // CREATE AND WRITE TRAMA SET
   createControlFrame(buffer, C_SET, SENDER);
-  printf("%x %x %x %x %x\n", buffer[0], buffer[1], buffer[2], buffer[3],
-         buffer[4], buffer[5]);
   do {
     res = write(fd, buffer, 5);
-    // controlByte = readingArrayStatus(port);
-    int xpto = read(fd, tramaUA, 5);
-    printf("%x %x %x %x %x\n", tramaUA[0], tramaUA[1], tramaUA[2], tramaUA[3],
-           tramaUA[4]);
+    // READ TRAMA UA
+    controlByte = readingArrayStatus(fd);
   } while (tries < numberOfTries && flag == 1);
-
-  // RECEIVE TRAMA UA
-  // res = read(fd, );
 
   return fd;
 }
@@ -284,7 +276,8 @@ char readingArrayStatus(int fd) {
         break;
       }
       case 3: {
-        if (var == (frame_receive[2] ^ frame_receive[1])) {
+        if (var == (frame_receive[2] ^ frame_receive[1]) ||
+            (frame_receive[2] == C_UA && var == frame_receive[2])) {
           state = 4;
         } else {
           perror("Damage package");
