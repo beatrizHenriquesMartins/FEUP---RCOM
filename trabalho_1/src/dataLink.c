@@ -107,9 +107,10 @@ int open_receiver(char *port) {
   alarm(0);
 
   // WRITE TRAMA UA
+  char tramaUA[5] = {FLAG, A_SENDER, C_UA, C_UA, FLAG};
   int res;
   do {
-    res = write(fd, &controlByte, sizeof(controlByte));
+    res = write(fd, &tramaUA, sizeof(tramaUA));
   } while (res == 0);
 
   return fd;
@@ -118,6 +119,7 @@ int open_receiver(char *port) {
 int open_sender(char *port) {
   printf("open_sender\n");
   char buffer[5];
+  char tramaUA[5];
   int res = 0;
   char controlByte = NULL;
 
@@ -129,8 +131,10 @@ int open_sender(char *port) {
          buffer[4], buffer[5]);
   do {
     res = write(fd, buffer, 5);
-    controlByte = readingArrayStatus(port);
-    printf("%x\n", controlByte);
+    // controlByte = readingArrayStatus(port);
+    int xpto = read(fd, tramaUA, 5);
+    printf("%x %x %x %x %x\n", tramaUA[0], tramaUA[1], tramaUA[2], tramaUA[3],
+           tramaUA[4]);
   } while (tries < numberOfTries && flag == 1);
 
   // RECEIVE TRAMA UA
