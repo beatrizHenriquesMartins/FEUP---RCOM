@@ -33,6 +33,9 @@
 #define N_OF_SEQ_1 0x40
 
 /* complete */
+void atende();
+
+/* complete */
 int open_serial_port(char* port, int whoCalls);
 
 /* complete */

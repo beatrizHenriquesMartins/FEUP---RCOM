@@ -34,7 +34,7 @@ void timeout() {
 
 // atende alarme
 void atende() {
-  printf("alarme # %d\n", conta);
+  printf("alarme # %d\n", tries);
   flag = 1;
   tries++;
 }
@@ -449,18 +449,18 @@ int llclose(int fd, int whoCalls) {
 
     if (sendImportantFrame(fd, frame, lenFrame) != 0) {
       printf("Couldn't send frame on llclose().\n");
-      res_resetSet = reset_settings(fd);
+      res_resetSet = resetSettings(fd);
     }
 
     createControlFrame(frame, C_UA, &lenFrame);
 
     if (writeTo_tty(fd, frame, lenFrame) != 0) {
       printf("Couldn't write to tty on llclose()\n");
-      res_resetSet = reset_settings(fd);
+      res_resetSet = resetSettings(fd);
       return -1;
     }
   } else if (whoCalls == RECEIVER) {
-    res_resetSet = reset_settings(fd);
+    res_resetSet = resetSettings(fd);
     if (res_resetSet == 0) {
       printf("Connection succesfully closed.\n");
     }
