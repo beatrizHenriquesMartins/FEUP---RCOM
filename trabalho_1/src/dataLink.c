@@ -181,7 +181,7 @@ void shiftBack(int index, char *frame, int frameSize) {
   } while (!over);
 }
 
-void stuffing(char *frame, int *length) {
+int stuffing(char *frame, int *length) {
   int i;
   printf("dentro do stuff, len = %d\n", *length);
   int allocated_space = *length;
@@ -202,6 +202,7 @@ void stuffing(char *frame, int *length) {
       i++;
     }
   }
+  return i;
 }
 
 int destuffing(char *frame) {
@@ -452,7 +453,7 @@ int llwrite(int fd, char *buffer, int length) {
 
   frame[length + 5] = FLAG;
 
-  (void)signal(SIGALRM, retry);
+  //(void)signal(SIGALRM, retry);
 
   frameSize = stuffing(frame, length + 6);
 
@@ -472,7 +473,7 @@ int llwrite(int fd, char *buffer, int length) {
   return nRej;
 }
 
-unsigned char getBCC2(unsigned char *frame, unsigned int length) {
+char getBCC2(unsigned char *frame, unsigned int length) {
   unsigned char BCC = 0;
 
   unsigned int i = 0;

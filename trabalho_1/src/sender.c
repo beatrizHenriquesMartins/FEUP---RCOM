@@ -14,7 +14,8 @@ int main(int argc, char *argv[]) {
   fd = llopen(argv[1], SENDER);
   printf("llopen complete\n");
 
-  llwrite();
+  char buffer[255];
+  llwrite(fd, buffer, 255);
   printf("llwrite complete\n");
 
   // llclose();

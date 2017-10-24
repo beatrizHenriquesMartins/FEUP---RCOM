@@ -54,7 +54,7 @@ void insertValueAt(int index, int value, char* frame, int lenght);
 void shiftBack(int index, char *frame, int frameSize);
 
 /* complete */
-void stuffing(char* frame, int *length);
+int stuffing(char* frame, int *length);
 
 /* complete */
 int destuffing(char *frame);
@@ -71,6 +71,8 @@ int processingDataFrame(char *frame);
 
 /* complete */
 int readingFrame(int fd, char *frame);
+
+char getBCC2(unsigned char *frame, unsigned int length);
 
 int resetSettings(int fd);
 
