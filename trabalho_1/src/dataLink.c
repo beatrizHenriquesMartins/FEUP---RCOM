@@ -408,7 +408,7 @@ int writeTo_tty(int fd, char *buf, int buf_length) {
 
 int llopen(char *port, int whoCalls) {
   printf("llopen\n");
-  char buffer[5] = NULL;
+  char buffer[5];
   int res = 0;
   char controlByte = NULL;
   if (whoCalls == RECEIVER) {
@@ -417,8 +417,8 @@ int llopen(char *port, int whoCalls) {
     open_sender(port);
     createControlFrame(buffer, C_SET, SENDER);
     do {
-      res = write(fd, frame, length);
-      controlByte = readingArrayStatus(fd);
+      res = write(port, buffer, 5);
+      controlByte = readingArrayStatus(port);
     } while (tries < numberOfTries && flag == 1);
   } else {
     return -1;
@@ -461,7 +461,7 @@ int llclose(int fd, int whoCalls) {
     }
   } else if (whoCalls == RECEIVER) {
     res_resetSettings = reset_settings(fd);
-    if (res_resetSettings == 0) {
+    if (res_resetSet == 0) {
       printf("Connection succesfully closed.\n");
     }
   }
