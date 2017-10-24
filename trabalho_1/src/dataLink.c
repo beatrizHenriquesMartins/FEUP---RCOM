@@ -434,12 +434,53 @@ int llopen(char *port, int whoCalls) {
 int llwrite(int fd, char *buffer, int length) {
   int sequenceNumber = buffer[length - 1];
   int nRej = 0;
+  char frame[255];
+  char temp[5];
 
   length--;
-  // frame[0] = FLAG;
-  // frame[1] = A_SENDER;
-  // frame[1] = A_SENDER;
-  // frame[3] = frame[1] ^ frame[2];
+  frame[0] = FLAG;
+  frame[1] = A_SENDER;
+  frame[2] = sequenceNumber;
+  frame[3] = frame[1] ^ frame[2];
+
+  int i;
+  for (i = 0; i < length; i++) {
+    frame[i + 4] = buffer[i];
+  }
+
+  frame[length + 4] = getBCC2(buffer, length);
+
+  frame[length + 5] = FLAG;
+
+  (void)signal(SIGALRM, retry);
+
+  frameSize = stuffing(frame, length + 6);
+
+  i = 0;
+  do {
+    if (i > 0) {
+      nRej++;
+    }
+
+    alarm(timeoutTime);
+    write(fd, frame, frameSize);
+    read(fd, temp, 5);
+    alarm(timeoutTime);
+    i++;
+  } while (temp[2] == C_REJ);
+
+  return nRej;
+}
+
+unsigned char getBCC2(unsigned char *frame, unsigned int length) {
+  unsigned char BCC = 0;
+
+  unsigned int i = 0;
+  for (; i < length; i++) {
+    BCC ^= frame[i];
+  }
+
+  return BCC;
 }
 
 int llclose(int fd, int whoCalls) {
@@ -478,6 +519,7 @@ int llread(int fd, char *buffer) {
   int ret, sizeAfterDestuffing;
 
   readingFrame(fd, buffer);
+  printf("%s", buffer);
 
   sizeAfterDestuffing = destuffing(buffer);
 
