@@ -26,6 +26,7 @@ struct termios oldtio, newtio;
          triesPackets);
 }
 */
+
 void timeout() {
   printf("TIMEOUT : Connection lost, try again later\n");
   exit(1);
@@ -126,14 +127,19 @@ int open_sender(char *port) {
 
 int sendImportantFrame(int fd, char *frame, int length) {
   printf("sttufing\n");
+
   stuffing(frame, &length);
+
   int res;
+
   tries = 0;
+
   do {
     res = write(fd, frame, length);
     sleep(1);
     tries++;
   } while (res < 0 && tries < numberOfTries);
+
   if (tries == numberOfTries) {
     perror("Can not write to serial port");
     return -1;
@@ -143,15 +149,19 @@ int sendImportantFrame(int fd, char *frame, int length) {
 
 void insertValueAt(int index, int value, char *frame, int lenght) {
   int i;
+
   for (i = lenght - 1; i >= index; i--) {
     frame[i + 1] = frame[i];
   }
+
   frame[i] = value;
 }
 
 void shiftBack(int index, char *frame, int frameSize) {
   int over = 0;
+
   index++;
+
   do {
     frame[index] = frame[index + 1];
     index++;
