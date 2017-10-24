@@ -33,10 +33,10 @@ void timeout() {
 }
 
 // atende alarme
-void atende(){
-	printf("alarme # %d\n", conta);
-	flag = 1;
-	tries++;
+void atende() {
+  printf("alarme # %d\n", conta);
+  flag = 1;
+  tries++;
 }
 /**
  *
@@ -236,7 +236,7 @@ char readingArrayStatus(int fd) {
   int state = 0;
   char frame_receive[5];
   char var;
-  flag=0;
+  flag = 0;
   alarm(3);
   while (state != 5 && flag == 0) {
     int res = read(fd, &var, 1);
@@ -415,11 +415,11 @@ int llopen(char *port, int whoCalls) {
     open_receiver(port);
   } else if (whoCalls == SENDER) {
     open_sender(port);
-    createControlFrame(buffer,C_SET,SENDER);
+    createControlFrame(buffer, C_SET, SENDER);
     do {
       res = write(fd, frame, length);
       controlByte = readingArrayStatus(fd);
-    } while(tries < numberOfTries && flag == 1);
+    } while (tries < numberOfTries && flag == 1);
   } else {
     return -1;
   }
@@ -437,7 +437,7 @@ int llwrite(int fd, char *buffer, int length) {
   // frame[3] = frame[1] ^ frame[2];
 }
 
-int llclose(int fd, int whoCalls){
+int llclose(int fd, int whoCalls) {
   printf("llclose\n");
 
   char *frame = NULL;
@@ -460,8 +460,8 @@ int llclose(int fd, int whoCalls){
       return -1;
     }
   } else if (whoCalls == RECEIVER) {
-    res_resetSettings = reset_settings(fd)
-    if (res_resetSettings == 0){
+    res_resetSettings = reset_settings(fd);
+    if (res_resetSettings == 0) {
       printf("Connection succesfully closed.\n");
     }
   }
