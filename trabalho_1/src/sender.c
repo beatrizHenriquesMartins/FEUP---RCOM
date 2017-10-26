@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
   printf("llopen complete\n");
 
   char buffer[255];
-  llwrite(fd, buffer, 255);
+  llwrite(fd, buffer, 25);
   printf("llwrite complete\n");
 
   // llclose();
