@@ -32,6 +32,10 @@
 #define N_OF_SEQ_0 0x00
 #define N_OF_SEQ_1 0x40
 
+#define DATA_BYTE 1
+#define START_BYTE 2
+#define END_BYTE 3
+
 /* complete */
 void retry();
 

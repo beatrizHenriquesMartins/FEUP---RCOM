@@ -23,24 +23,14 @@ typedef struct{
 
 app application;
 
-/*
-typedef struct{
-  // Dispositivo /dev/ttySx, x = 0, 1
-  char port[20];
-  // Velocidade de transmissão
-  int baudRate;
-  // Número de sequência da trama: 0, 1
-  unsigned int sequenceNumber;
-  // Valor do temporizador: 1 s
-  unsigned int timeout;
-  // Número de tentativas em caso de falha
-  unsigned int numTransmissions;
-  // Trama
-  char frame[PACKET_SIZE];
-}link;
-*/
+int getFileSize(char *trama, int lenghtTrama);
+
+char *getFileName(char *packet, int packet_len);
 
 int connection(char*terminal,int whoCalls);
+
+int receiveData();
+
 /*
 send data
 app layer
