@@ -400,19 +400,15 @@ int llopen(char *port, int whoCalls) {
   } else {
     return -1;
   }
-  return 0;
+  return port;
 }
 
 int llread(int fd, char *buffer) {
   printf("llread\n");
 
-  int res = read(fd, buffer, 3);
-  printf("%s\n", buffer);
-
-  /*int ret, sizeAfterDestuffing;
+  int ret, sizeAfterDestuffing;
 
   readingFrame(fd, buffer);
-  printf("%x", buffer);
 
   sizeAfterDestuffing = destuffing(buffer);
 
@@ -423,52 +419,46 @@ int llread(int fd, char *buffer) {
   if (ret == 0) {
     ret = sizeAfterDestuffing;
   }
-*/
-  return res;
+
+  return ret;
 }
 
 int llwrite(int fd, char *buffer, int length) {
-  write(fd, "543", 3);
-  /*  int sequenceNumber = buffer[length - 1];
-    int nRej = 0;
+  int sequenceNumber = buffer[length - 1];
+  int nRej = 0;
 
-    length--;
-    frame[0] = FLAG;
-    frame[1] = A_SENDER;
-    frame[2] = sequenceNumber;
-    frame[3] = frame[1] ^ frame[2];
+  length--;
+  frame[0] = FLAG;
+  frame[1] = A_SENDER;
+  frame[2] = sequenceNumber;
+  frame[3] = frame[1] ^ frame[2];
 
-    int i;
-    for (i = 0; i < length; i++) {
-      frame[i + 4] = buffer[i];
+  int i;
+  for (i = 0; i < length; i++) {
+    frame[i + 4] = buffer[i];
+  }
+
+  frame[length + 4] = getBCC2(buffer, length);
+
+  frame[length + 5] = FLAG;
+
+  (void)signal(SIGALRM, retry);
+
+  frameSize = stuffing(frame, length + 6);
+
+  i = 0;
+  do {
+    if (i > 0) {
+      nRej++;
     }
 
-    frame[length + 4] = getBCC2(buffer, length);
+    alarm(timeoutTime);
+    write(fd, frame, frameSize);
+    alarm(timeoutTime);
+    i++;
+  } while (temp[2] == C_REJ);
 
-    frame[length + 5] = FLAG;
-
-    (void)signal(SIGALRM, retry);
-
-    frameSize = stuffing(frame, length + 6);
-
-    i = 0;
-    do {
-      if (i > 0) {
-        nRej++;
-      }
-
-      // alarm(timeoutTime);
-      int res = 0;
-      printf("%x\n", frame);
-      res = write(fd, frame, frameSize);
-      printf("%i\n", res);
-      read(fd, temp, 5);
-      printf("%x\n", temp);
-      // alarm(timeoutTime);
-      i++;
-    } while (temp[2] == C_REJ);
-
-    return nRej;*/
+  return nRej;
 }
 
 /*int llclose(int fd, int whoCalls) {
