@@ -16,25 +16,31 @@
 #define PACKET_DATA_SIZE PACKET_SIZE - PACKET_HEADER_SIZE
 #define FILE_SIZE 10968
 
-struct applicationLayer {
-int fileDescriptor; /*Descritor correspondente à porta série*/
-int status; /*TRANSMITTER | RECEIVER*/
+typedef struct{
+  int fileDescriptor; /*Descritor correspondente à porta série*/
+  int status; /*TRANSMITTER | RECEIVER*/
 }app;
 
 app application;
 
-struct linkLayer {
-char port[20]; /*Dispositivo /dev/ttySx, x = 0, 1*/
-int baudRate; /*Velocidade de transmissão*/
-unsigned int sequenceNumber; /*Número de sequência da trama: 0, 1*/
-unsigned int timeout; /*Valor do temporizador: 1 s*/
-unsigned int numTransmissions; /*Número de tentativas em caso de
-falha*/
-char frame[MAX_SIZE]; /*Trama*/
+/*
+typedef struct{
+  // Dispositivo /dev/ttySx, x = 0, 1
+  char port[20];
+  // Velocidade de transmissão
+  int baudRate;
+  // Número de sequência da trama: 0, 1
+  unsigned int sequenceNumber;
+  // Valor do temporizador: 1 s
+  unsigned int timeout;
+  // Número de tentativas em caso de falha
+  unsigned int numTransmissions;
+  // Trama
+  char frame[PACKET_SIZE];
 }link;
+*/
 
-
-int test_connection(char*terminal,int whoCalls);
+int connection(char*terminal,int whoCalls);
 /*
 send data
 app layer
