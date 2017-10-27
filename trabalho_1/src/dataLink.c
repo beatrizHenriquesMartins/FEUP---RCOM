@@ -47,11 +47,11 @@ void atende() {
 int open_serial_port(char *port, int whoCalls) {
   printf("open_serial_port\n");
   int fd;
-  char serialPort[10] = "/dev/tnt"; //"/dev/ttyS";
+  char serialPort[10] = "/dev/ttyS";
   strcat(serialPort, port);
 
-  if ((strcmp("/dev/tnt0", serialPort) != 0) &&
-      (strcmp("/dev/tnt1", serialPort) != 0)) {
+  if ((strcmp("/dev/ttyS0", serialPort) != 0) &&
+      (strcmp("/dev/ttyS1", serialPort) != 0)) {
     printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
     exit(1);
   }
