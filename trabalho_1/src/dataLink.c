@@ -7,25 +7,29 @@ int timeoutTime = 3;
 int numberOfTimeOuts = 0;
 int success = 0;
 int tries = 0;
+char frame[255];
+char temp[5];
+// int fd;
 struct termios oldtio, newtio;
 
-/*void retry() {
+/**
+ * Functions dealing with alerts
+ */
+void retry() {
   alarm(timeoutTime);
-  write(fd, frame, frameSize);
+  // write(fd, frame, frameSize);
   numberOfTimeOuts++;
 
-  if (triesPackets == numberOfTries) {
+  if (tries == numberOfTries) {
     printf(
         "\n\nTIMEOUT : Lost connection to receiver\n Number of tries : %d\n\n",
         numberOfTries);
     exit(1);
   }
 
-  triesPackets++;
-  printf("\n\nTrying to connect to receiver\nTry number : %d\n\n",
-         triesPackets);
+  tries++;
+  printf("\n\nTrying to connect to receiver\nTry number : %d\n\n", tries);
 }
-*/
 
 void timeout() {
   printf("TIMEOUT : Connection lost, try again later\n");
@@ -40,9 +44,7 @@ void atende() {
 }
 
 /**
- *
- * Funções
- *
+ * Functions
  */
 int open_serial_port(char *port, int whoCalls) {
   printf("open_serial_port\n");
@@ -136,94 +138,6 @@ int open_sender(char *port) {
   return fd;
 }
 
-int sendImportantFrame(int fd, char *frame, int length) {
-  printf("sttufing\n");
-
-  stuffing(frame, &length);
-
-  int res;
-
-  tries = 0;
-
-  do {
-    res = write(fd, frame, length);
-    sleep(1);
-    tries++;
-  } while (res < 0 && tries < numberOfTries);
-
-  if (tries == numberOfTries) {
-    perror("Can not write to serial port");
-    return -1;
-  }
-  return 0;
-}
-
-void insertValueAt(int index, int value, char *frame, int lenght) {
-  int i;
-
-  for (i = lenght - 1; i >= index; i--) {
-    frame[i + 1] = frame[i];
-  }
-
-  frame[i] = value;
-}
-
-void shiftBack(int index, char *frame, int frameSize) {
-  int over = 0;
-
-  index++;
-
-  do {
-    frame[index] = frame[index + 1];
-    index++;
-    if (frame[index] == FLAG) {
-      over = 1;
-    }
-  } while (!over);
-}
-
-int stuffing(char *frame, int *length) {
-  int i;
-  printf("dentro do stuff, len = %d\n", *length);
-  int allocated_space = *length;
-  for (i = 0; i < *length; i++) {
-    printf("dentro ciclo\n");
-    printf("frame[0]= 0x%02X\n", frame[0]);
-    if (frame[i] == ESC || frame[i] == FLAG) {
-
-      if ((*length) >= allocated_space) {
-        allocated_space = 2 * (*length);
-        printf("antes realloc\n");
-        frame = realloc(frame, allocated_space);
-        printf("depois do realloc\n");
-      }
-      frame[i] = frame[i] ^ 0x20;
-      insertValueAt(i, ESC, frame, *length);
-      (*length)++;
-      i++;
-    }
-  }
-  return i;
-}
-
-int destuffing(char *frame) {
-  int over = 0;
-
-  int i = 1;
-  while (!over) {
-    if (frame[i] == FLAG) {
-      over = 1;
-    } else if (frame[i] == ESC && frame[i + 1] == FLAG_HIDE_BYTE) {
-      frame[i] = FLAG;
-      shiftBack(i, frame, 0);
-    } else if (frame[i] == ESC && frame[i + 1] == ESC_HIDE_BYTE) {
-      shiftBack(i, frame, 0);
-    }
-    i++;
-  }
-  return i;
-}
-
 void createControlFrame(char *frame, char controlByte, int whoCalls) {
   int isAnswer = 0;
   frame[0] = FLAG;
@@ -304,6 +218,80 @@ char readingArrayStatus(int fd) {
   return -1;
 }
 
+void insertValueAt(int index, int value, char *frame, int lenght) {
+  int i;
+
+  for (i = lenght - 1; i >= index; i--) {
+    frame[i + 1] = frame[i];
+  }
+
+  frame[i] = value;
+}
+
+void shiftBack(int index, char *frame, int frameSize) {
+  int over = 0;
+
+  index++;
+
+  do {
+    frame[index] = frame[index + 1];
+    index++;
+    if (frame[index] == FLAG) {
+      over = 1;
+    }
+  } while (!over);
+}
+
+char getBCC2(unsigned char *frame, unsigned int length) {
+  unsigned char BCC = 0;
+
+  unsigned int i = 0;
+  for (; i < length; i++) {
+    BCC ^= frame[i];
+  }
+
+  return BCC;
+}
+
+int stuffing(unsigned char *frame, int length) {
+  int i;
+  for (i = 1; i < length - 1; i++) {
+    if (frame[i] == FLAG) {
+      frame[i] = ESC;
+      i++;
+      insertValueAt(i, 0, frame, length);
+      frameSize++;
+      frame[i] = FLAG_HIDE_BYTE;
+    }
+    if (frame[i] == ESC) {
+      i++;
+      insertValueAt(i, 0, frame, length);
+      frameSize++;
+      frame[i] = ESC_HIDE_BYTE;
+    }
+  }
+
+  return length;
+}
+
+int destuffing(char *frame) {
+  int over = 0;
+
+  int i = 1;
+  while (!over) {
+    if (frame[i] == FLAG) {
+      over = 1;
+    } else if (frame[i] == ESC && frame[i + 1] == FLAG_HIDE_BYTE) {
+      frame[i] = FLAG;
+      shiftBack(i, frame, 0);
+    } else if (frame[i] == ESC && frame[i + 1] == ESC_HIDE_BYTE) {
+      shiftBack(i, frame, 0);
+    }
+    i++;
+  }
+  return i;
+}
+
 int processingDataFrame(char *frame) {
   printf("processingDataFrame\n");
   int ret = 0;
@@ -339,10 +327,11 @@ int readingFrame(int fd, char *frame) {
 
   //(void)signal(SIGALRM, timeout);
 
-  while (!over) {
-    alarm(timeoutTime);
-    read(fd, &oneByte, 1);
-    alarm(timeoutTime);
+  while (over != 1) {
+    // alarm(timeoutTime);
+    read(fd, oneByte, 1);
+    printf("%x\n", oneByte);
+    // alarm(timeoutTime);
 
     switch (state) {
     case 0:
@@ -400,25 +389,6 @@ int resetSettings(int fd) {
   return 0;
 }
 
-int writeTo_tty(int fd, char *buf, int buf_length) {
-  int totalWrittenChars = 0;
-  int writtenChars = 0;
-
-  while (totalWrittenChars < buf_length) {
-    writtenChars = write(fd, buf, buf_length);
-
-    if (writtenChars <= 0) {
-      printf("Written chars: %d\n", writtenChars);
-      printf("%s\n", strerror(errno));
-      return -1;
-    }
-
-    totalWrittenChars += writtenChars;
-  }
-
-  return 0;
-}
-
 int llopen(char *port, int whoCalls) {
   printf("llopen\n");
 
@@ -433,59 +403,75 @@ int llopen(char *port, int whoCalls) {
   return 0;
 }
 
-int llwrite(int fd, char *buffer, int length) {
-  int sequenceNumber = buffer[length - 1];
-  int nRej = 0;
-  char frame[255];
-  char temp[5];
+int llread(int fd, char *buffer) {
+  printf("llread\n");
 
-  length--;
-  frame[0] = FLAG;
-  frame[1] = A_SENDER;
-  frame[2] = sequenceNumber;
-  frame[3] = frame[1] ^ frame[2];
+  int res = read(fd, buffer, 3);
+  printf("%s\n", buffer);
 
-  int i;
-  for (i = 0; i < length; i++) {
-    frame[i + 4] = buffer[i];
+  /*int ret, sizeAfterDestuffing;
+
+  readingFrame(fd, buffer);
+  printf("%x", buffer);
+
+  sizeAfterDestuffing = destuffing(buffer);
+
+  if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
+    ret = processingDataFrame(buffer);
   }
 
-  frame[length + 4] = getBCC2(buffer, length);
+  if (ret == 0) {
+    ret = sizeAfterDestuffing;
+  }
+*/
+  return res;
+}
 
-  frame[length + 5] = FLAG;
+int llwrite(int fd, char *buffer, int length) {
+  write(fd, "543", 3);
+  /*  int sequenceNumber = buffer[length - 1];
+    int nRej = 0;
 
-  //(void)signal(SIGALRM, retry);
+    length--;
+    frame[0] = FLAG;
+    frame[1] = A_SENDER;
+    frame[2] = sequenceNumber;
+    frame[3] = frame[1] ^ frame[2];
 
-  frameSize = stuffing(frame, length + 6);
-
-  i = 0;
-  do {
-    if (i > 0) {
-      nRej++;
+    int i;
+    for (i = 0; i < length; i++) {
+      frame[i + 4] = buffer[i];
     }
 
-    alarm(timeoutTime);
-    write(fd, frame, frameSize);
-    read(fd, temp, 5);
-    alarm(timeoutTime);
-    i++;
-  } while (temp[2] == C_REJ);
+    frame[length + 4] = getBCC2(buffer, length);
 
-  return nRej;
+    frame[length + 5] = FLAG;
+
+    (void)signal(SIGALRM, retry);
+
+    frameSize = stuffing(frame, length + 6);
+
+    i = 0;
+    do {
+      if (i > 0) {
+        nRej++;
+      }
+
+      // alarm(timeoutTime);
+      int res = 0;
+      printf("%x\n", frame);
+      res = write(fd, frame, frameSize);
+      printf("%i\n", res);
+      read(fd, temp, 5);
+      printf("%x\n", temp);
+      // alarm(timeoutTime);
+      i++;
+    } while (temp[2] == C_REJ);
+
+    return nRej;*/
 }
 
-char getBCC2(unsigned char *frame, unsigned int length) {
-  unsigned char BCC = 0;
-
-  unsigned int i = 0;
-  for (; i < length; i++) {
-    BCC ^= frame[i];
-  }
-
-  return BCC;
-}
-
-int llclose(int fd, int whoCalls) {
+/*int llclose(int fd, int whoCalls) {
   printf("llclose\n");
 
   char *frame = NULL;
@@ -514,24 +500,4 @@ int llclose(int fd, int whoCalls) {
     }
   }
   return 0;
-}
-
-int llread(int fd, char *buffer) {
-  printf("llread\n");
-  int ret, sizeAfterDestuffing;
-
-  readingFrame(fd, buffer);
-  printf("%s", buffer);
-
-  sizeAfterDestuffing = destuffing(buffer);
-
-  if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
-    ret = processingDataFrame(buffer);
-  }
-
-  if (ret == 0) {
-    ret = sizeAfterDestuffing;
-  }
-
-  return ret;
-}
+}*/

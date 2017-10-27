@@ -33,6 +33,9 @@
 #define N_OF_SEQ_1 0x40
 
 /* complete */
+void retry();
+
+/* complete */
 void atende();
 
 /* complete */
@@ -44,21 +47,6 @@ int open_receiver(char* port);
 /* complete */
 int open_sender(char* port);
 
-/* complete - alarm */
-int sendImportantFrame(int fd, char* frame, int length );
-
-/* complete */
-void insertValueAt(int index, int value, char* frame, int lenght);
-
-/* complete */
-void shiftBack(int index, char *frame, int frameSize);
-
-/* complete */
-int stuffing(char* frame, int *length);
-
-/* complete */
-int destuffing(char *frame);
-
 /* complete */
 void createControlFrame(char *frame, char controlByte, int whoCalls);
 
@@ -67,21 +55,41 @@ void createControlFrame(char *frame, char controlByte, int whoCalls);
 char readingArrayStatus(int fd);
 
 /* complete */
+void insertValueAt(int index, int value, char* frame, int lenght);
+
+/* complete */
+void shiftBack(int index, char *frame, int frameSize);
+
+/* complete */
+char getBCC2(unsigned char *frame, unsigned int length);
+
+/* complete */
+int stuffing(unsigned char *frame, int length);
+
+/* complete */
+int destuffing(char *frame);
+
+/* complete */
 int processingDataFrame(char *frame);
 
 /* complete */
 int readingFrame(int fd, char *frame);
 
-char getBCC2(unsigned char *frame, unsigned int length);
-
+/**/
 int resetSettings(int fd);
 
+/* complete */
 int llopen(char* port,int whoCalls);
 
+/**/
+int llread(int fd, char* buffer);
+
+/**/
 int llwrite(int fd, char* buffer, int length);
 
-int llclose(int fd, int whoCalls);
+/**/
+//int llclose(int fd, int whoCalls);
 
-int llread(int fd, char* buffer);
+
 
 #endif
