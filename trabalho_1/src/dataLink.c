@@ -38,6 +38,7 @@ void atende() {
   flag = 1;
   tries++;
 }
+
 /**
  *
  * Funções
