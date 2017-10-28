@@ -15,7 +15,7 @@ struct termios oldtio, newtio;
 /**
  * Functions dealing with alerts
  */
-void retry() {
+/*void retry() {
   alarm(timeoutTime);
   // write(fd, frame, frameSize);
   numberOfTimeOuts++;
@@ -29,7 +29,7 @@ void retry() {
 
   tries++;
   printf("\n\nTrying to connect to receiver\nTry number : %d\n\n", tries);
-}
+}*/
 
 void timeout() {
   printf("TIMEOUT : Connection lost, try again later\n");
@@ -46,7 +46,7 @@ void atende() {
 /**
  * Functions
  */
-int open_serial_port(char* port, int whoCalls) {
+int open_serial_port(char *port, int whoCalls) {
   printf("open_serial_port\n");
   int fd;
   char serialPort[10] = "/dev/ttyS";
@@ -96,7 +96,7 @@ int open_serial_port(char* port, int whoCalls) {
   return fd;
 }
 
-int open_receiver(char* port) {
+int open_receiver(char *port) {
   printf("open_receiver\n");
   int fd;
 
@@ -118,7 +118,7 @@ int open_receiver(char* port) {
   return fd;
 }
 
-int open_sender(char* port) {
+int open_sender(char *port) {
   printf("open_sender\n");
   char buffer[5];
   char tramaUA[5];
@@ -138,7 +138,7 @@ int open_sender(char* port) {
   return fd;
 }
 
-void createControlFrame(char* frame, char controlByte, int whoCalls) {
+void createControlFrame(char *frame, char controlByte, int whoCalls) {
   int isAnswer = 0;
   frame[0] = FLAG;
 
@@ -163,7 +163,7 @@ char readingArrayStatus(int fd) {
   char frame_receive[5];
   char var;
   flag = 0;
-  alarm(3);
+  alarm(timeoutTime);
   while (state != 5 && flag == 0) {
     int res = read(fd, &var, 1);
     frame_receive[state] = var;
@@ -218,7 +218,7 @@ char readingArrayStatus(int fd) {
   return -1;
 }
 
-void insertValueAt(int index, int value, char* frame, int lenght) {
+void insertValueAt(int index, int value, char *frame, int lenght) {
   int i;
 
   for (i = lenght - 1; i >= index; i--) {
@@ -228,7 +228,7 @@ void insertValueAt(int index, int value, char* frame, int lenght) {
   frame[i] = value;
 }
 
-void shiftBack(int index, char* frame, int frameSize) {
+void shiftBack(int index, char *frame, int frameSize) {
   int over = 0;
 
   index++;
@@ -242,7 +242,7 @@ void shiftBack(int index, char* frame, int frameSize) {
   } while (!over);
 }
 
-char getBCC2(unsigned char* frame, unsigned int length) {
+char getBCC2(unsigned char *frame, unsigned int length) {
   unsigned char BCC = 0;
 
   unsigned int i = 0;
@@ -253,7 +253,7 @@ char getBCC2(unsigned char* frame, unsigned int length) {
   return BCC;
 }
 
-int stuffing(unsigned char* frame, int length) {
+int stuffing(unsigned char *frame, int length) {
   int i;
   for (i = 1; i < length - 1; i++) {
     if (frame[i] == FLAG) {
@@ -274,7 +274,7 @@ int stuffing(unsigned char* frame, int length) {
   return length;
 }
 
-int destuffing(char* frame) {
+int destuffing(char *frame) {
   int over = 0;
 
   int i = 1;
@@ -292,7 +292,7 @@ int destuffing(char* frame) {
   return i;
 }
 
-int processingDataFrame(char* frame) {
+int processingDataFrame(char *frame) {
   printf("processingDataFrame\n");
   int ret = 0;
 
@@ -318,20 +318,20 @@ int processingDataFrame(char* frame) {
   return ret;
 }
 
-int readingFrame(int fd, char* frame) {
+int readingFrame(int fd, char *frame) {
   printf("readingFrame\n");
   unsigned char oneByte;
   int state = 0;
   int over = 0;
   int i = 0;
 
-  //(void)signal(SIGALRM, timeout);
+  (void)signal(SIGALRM, timeout);
 
-  while (over != 1) {
-    // alarm(timeoutTime);
+  while (over == 0) {
+    alarm(timeoutTime);
     read(fd, oneByte, 1);
-    printf("%x\n", oneByte);
-    // alarm(timeoutTime);
+    // printf("0x%2x\n", frame);
+    alarm(timeoutTime);
 
     switch (state) {
     case 0:
@@ -376,7 +376,6 @@ int readingFrame(int fd, char* frame) {
       break;
     }
   }
-
   return i;
 }
 
@@ -389,7 +388,7 @@ int resetSettings(int fd) {
   return 0;
 }
 
-int llopen(char* port, int whoCalls) {
+int llopen(char *port, int whoCalls) {
   printf("llopen\n");
 
   if (whoCalls == RECEIVER) {
@@ -400,10 +399,10 @@ int llopen(char* port, int whoCalls) {
   } else {
     return -1;
   }
-  return port;
+  return atoi(port);
 }
 
-int llread(int fd, char* buffer) {
+int llread(int fd, char *buffer) {
   printf("llread\n");
 
   int ret, sizeAfterDestuffing;
@@ -423,7 +422,8 @@ int llread(int fd, char* buffer) {
   return ret;
 }
 
-int llwrite(int fd, char* buffer, int length) {
+int llwrite(int fd, char *buffer, int length) {
+  printf("llwrite\n");
   int sequenceNumber = buffer[length - 1];
   int nRej = 0;
 
@@ -442,7 +442,7 @@ int llwrite(int fd, char* buffer, int length) {
 
   frame[length + 5] = FLAG;
 
-  (void)signal(SIGALRM, retry);
+  (void)signal(SIGALRM, atende);
 
   frameSize = stuffing(frame, length + 6);
 
@@ -453,7 +453,9 @@ int llwrite(int fd, char* buffer, int length) {
     }
 
     alarm(timeoutTime);
+    printf("%x\n", frame);
     write(fd, frame, frameSize);
+    read(fd, temp, 5);
     alarm(timeoutTime);
     i++;
   } while (temp[2] == C_REJ);
