@@ -5,6 +5,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <sys/stat.h> //biblioteca que permite obter o mode de um file
+#include <sys/types.h>
+#include <errno.h>
 #include "dataLink.h"
 
 #define FILE_SIZE_BYTE 0
@@ -23,21 +26,14 @@ typedef struct{
 
 app application;
 
-int getFileSize(char *trama, int lenghtTrama);
+off_t getFileSize(char* trama, int lenghtTrama);
 
-char *getFileName(char *packet, int packet_len);
+char* getFileName(char* trama, int lenghtTrama);
 
-int connection(char*terminal,int whoCalls);
+char* getFileName(char* trama, int lenghtTrama);
+
+int connection(char* terminal, int whoCalls);
 
 int receiveData();
-
-/*
-send data
-app layer
-llopen
-send control package
-processing data packet
-senda data package
-*/
 
 #endif

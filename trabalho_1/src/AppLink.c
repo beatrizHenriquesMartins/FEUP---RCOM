@@ -2,79 +2,102 @@
 
 int numBytesReads = 0;
 
-/* ??? */
-int getFileSize(char *trama, int lenghtTrama) {
+/*
+size_t - size of objs (C++)
+off_t - file objs (POSIX)
+*/
+off_t getFileSize(char* trama, int lenghtTrama) {
   int i = 1;
   while (i < lenghtTrama) {
     if (trama[i] == FILE_SIZE_BYTE){
-      return (packet + i + 2));
+      //necessário fazer conversão de char* to long long
+      return *((off_t *)(trama + i + 2));
     }
-    i += 2 + packet[i + 1];
+    i += 2 + trama[i + 1];
   }
-
   return 0;
 }
 
-char *getFileName(char *packet, int packet_len) {
+char* getFileName(char* trama, int lenghtTrama) {
   int i = 1;
-  while (i < packet_len) {
-    if (packet[i] == FILE_NAME_BYTE) {
-      char *file_name = (char *)malloc((packet[i + 1] + 1) * sizeof(char));
-      memcpy(file_name, packet + i + 2, packet[i + 1]);
-      file_name[(packet[i + 1] + 1)] = 0;
+  while (i < lenghtTrama) {
+    if (trama[i] == FILE_NAME_BYTE) {
+      char *file_name = (char*)malloc((trama[i + 1] + 1) * sizeof(char));
+      //copia da trama para file_name n caracteres
+      memcpy(file_name, trama + i + 2, trama[i + 1]);
+      file_name[(trama[i + 1] + 1)] = 0;
       return file_name;
     }
-
-    i += 2 + packet[i + 1];
+    i += 2 + trama[i + 1];
   }
-
   return NULL;
 }
 
-int connection(char*terminal,int whoCalls){
+/*
+mode_t tem 4 bytes, no entanto
+a trama enviada tem apenas 2, por isso é necessário
+ler apenas 2 e fazer cast
+*/
+mode_t getFileMode(char* trama, int lenghtTrama){
+  int i = 1;
+
+  while (i < lenghtTrama) {
+    if (trama[i] == FILE_PERMISSIONS_BYTE) {
+      return *((mode_t*)(trama + i + 2));
+    }
+
+    i += 2 + trama[i+2];
+  }
+
+  return -1;
+}
+
+int connection(char* terminal,int whoCalls){
   if(whoCalls != SENDER && whoCalls != RECEIVER){
-    printf("AppLink :: connection() :: Invalid status.\n");
+    perror("AppLink :: connection() :: Invalid status.");
     return -1;
   }
 
   application.status = whoCalls;
 
-  int port;
+  int port = NULL ;
   if(strcmp("/dev/ttyS0", terminal) == 0){
     port = SENDER;
   }else if(strcmp("/dev/ttyS1", terminal) == 0){
     port = RECEIVER;
+  }else{
+    perror("AppLink :: connection() :: terminal failed");
   }
 
-  application.fileDescriptor = llopen(port,whoCalls);
+  application.fileDescriptor = llopen(terminal, port);
   if(application.fileDescriptor < 0){
-    printf("AppLink :: connection() :: llopen failed\n\n");
+    perror("AppLink :: connection() :: llopen failed");
     return -1;
   }
-
   return application.fileDescriptor;
 }
 
 int receiveData(){
   char trama[PACKET_SIZE];
 
-  int lenghtTrama;
+  int lenghtTrama = 0;
 
   do {
     if (llread(application.fileDescriptor, trama) != 0) {
-      printf("Error llread() :: receive_data()\n");
+      perror("Error llread() :: receive_data()");
       exit(-1);
     }
   } while (lenghtTrama == 0 || trama[0] != (unsigned char)START_BYTE);
 
-  int fSize = getFileSize(trama, lenghtTrama);
+  //tipos correctos de obter dados
+  off_t fSize = getFileSize(trama, lenghtTrama);
   char* fName = getFileName(trama, lenghtTrama);
-  // file mode
+  mode_t fMode = getFileMode(trama, lenghtTrama);
 
   int fd = open(fName, O_WRONLY | O_CREAT | O_TRUNC);
 
   if (fd < 0) {
-    printf("Error opening file. Exiting...\n");
+    perror("Error opening file. Exiting...");
     return -1;
   }
 
