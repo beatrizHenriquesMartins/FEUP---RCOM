@@ -52,7 +52,7 @@ int open_receiver(char* port);
 int open_sender(char* port);
 
 /* complete */
-void createControlFrame(char *frame, char controlByte, int whoCalls);
+void createControlFrame(char* frame, char controlByte, int whoCalls);
 
 /* complete
    maquina de estados */
@@ -62,22 +62,22 @@ char readingArrayStatus(int fd);
 void insertValueAt(int index, int value, char* frame, int lenght);
 
 /* complete */
-void shiftBack(int index, char *frame, int frameSize);
+void shiftBack(int index, char* frame, int frameSize);
 
 /* complete */
-char getBCC2(unsigned char *frame, unsigned int length);
+char getBCC2(unsigned char* frame, unsigned int length);
 
 /* complete */
-int stuffing(unsigned char *frame, int length);
+int stuffing(unsigned char* frame, int length);
 
 /* complete */
-int destuffing(char *frame);
+int destuffing(char* frame);
 
 /* complete */
-int processingDataFrame(char *frame);
+int processingDataFrame(char* frame);
 
 /* complete */
-int readingFrame(int fd, char *frame);
+int readingFrame(int fd, char* frame);
 
 /**/
 int resetSettings(int fd);
