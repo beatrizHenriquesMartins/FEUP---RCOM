@@ -81,10 +81,14 @@ int receiveData(){
   char trama[PACKET_SIZE];
 
   int lenghtTrama = 0;
+  int llread_res = 0;
+  int appFD = 0;
 
   do {
-    if (llread(application.fileDescriptor, trama) != 0) {
-      perror("Error llread() :: receive_data()");
+    appFD = application.fileDescriptor;
+    llread_res = llread(appFD, trama);
+    if ( llread_res != 0) {
+      perror("Error llread() :: receive()");
       exit(-1);
     }
   } while (lenghtTrama == 0 || trama[0] != (unsigned char)START_BYTE);
@@ -101,6 +105,34 @@ int receiveData(){
     return -1;
   }
 
-  /*ainda inacabado*/
+  /*reading trama*/
+  char sequenceNumber = 0;
+  appFD = application.fileDescriptor;
+  llread_res = llread(appFD, trama);
+  if (llread_res != 0) {
+    perror("Error llread() :: receive");
+    close(fd);
+    exit(-1);
+  }
+
+  while (lenghtTrama == 0 || trama[0] != END_BYTE) {
+    if (lenghtTrama > 0 && sequenceNumber == trama[1]) {
+      int lenghtInfo = trama[2] * 256 + trama[3];
+
+      write(fd, trama + 4, lenghtInfo);
+
+      numBytesReads += lenghtInfo;
+      sequenceNumber++;
+    }
+
+    if(llread_res != 0){
+      perror("Error llread() :: receive");
+      close(fd);
+      exit(-1);
+    }
+  }
+
+  close(fd);
+
   return 0;
 }
