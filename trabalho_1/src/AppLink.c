@@ -1,6 +1,8 @@
 #include "AppLink.h"
 
 int numBytesReads = 0;
+unsigned char previousDataCounter = 0;
+int dataSize = 100; // default value
 
 /*
 size_t - size of objs (C++)
@@ -78,61 +80,301 @@ int connection(char *terminal, int whoCalls) {
 }
 
 int receiveData() {
-  char trama[PACKET_SIZE];
+  unsigned char frame[255];
+  int over = 0;
+  FileInfo file;
+  file.size = 0;
+  int ret;
+  int fp;
+  int bytesRead = 0;
+  int percentage = 0;
+  int packagesLost = 0;
+  int percentageWrite = 0;
+  int numberOfRejs = 0;
+  int frameLength;
 
-  int lenghtTrama = 0;
-  int llread_res = 0;
-  int appFD = 0;
+  printf("\nStart reading\n");
 
-  do {
-    appFD = application.fileDescriptor;
-    llread_res = llread(appFD, trama);
-    if (llread_res != 0) {
-      perror("Error llread() :: receive()");
-      exit(-1);
+  while (!over) {
+
+    frameLength = llread(application.fileDescriptor, frame);
+
+    if (frameLength == -1) {
+      packagesLost++;
+      ret = -1;
+    } else {
+      ret = processingDataPacket(frame, frameLength, &file, fp);
+
+      if (ret == START_CTRL_PACKET) {
+        fp = open(file.filename, O_CREAT | O_WRONLY);
+        if (fp == -1) {
+          printf("Could not open file  test.c");
+          return -1;
+        }
+      }
+
+      if (ret == DATA_CTRL_PACKET) {
+        bytesRead += frameLength - 10;
+        percentage = (bytesRead * 100) / file.size;
+        if ((percentage % 10) == 0 && percentageWrite != (int)percentage) {
+          printf("%d%%\n", percentage);
+          percentageWrite = (int)percentage;
+        }
+      }
+
+      if (ret == END_CTRL_PACKET) {
+        over = 1;
+      }
     }
-  } while (lenghtTrama == 0 || trama[0] != (unsigned char)START_BYTE);
 
-  // tipos correctos de obter dados
-  off_t fSize = getFileSize(trama, lenghtTrama);
-  char *fName = getFileName(trama, lenghtTrama);
-  mode_t fMode = getFileMode(trama, lenghtTrama);
+    if (ret == -1) {
+      write(application.fileDescriptor, C_REJ, 5);
+      numberOfRejs++;
+    } else {
+      if (frame[FLD_CTRL] == N_OF_SEQ_0) {
+        write(application.fileDescriptor, C_RR1, 5);
+      } else
+        write(application.fileDescriptor, C_RR, 5);
+    }
+  }
+  char command[50] = "gpicview ";
+  strcat(command, file.filename);
+  // system(command);
 
-  int fd = open(fName, O_WRONLY | O_CREAT | O_TRUNC);
+  printf("\nFile read\n");
+  printf("\nPackages lost : %d\n", packagesLost);
+  printf("Total bytes read : %d\n", bytesRead);
+  printf("File size : %d\n", file.size);
+  printf("Number of rejs sent : %d\n", numberOfRejs);
 
-  if (fd < 0) {
-    perror("Error opening file. Exiting...");
+  return 1;
+}
+
+int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
+                         int fp) {
+
+  int index = 4;
+  int numberOfBytes;
+  int ret;
+  int dataCounterCheck = 0;
+
+  // Testing to see if is a control packet
+  if (packet[index] == START_CTRL_PACKET || packet[index] == END_CTRL_PACKET) {
+
+    ret = packet[index];
+    index += 2;
+
+    numberOfBytes = packet[index];
+    index++; // taking packet index to de begginning of the data
+    memcpy(&((*file).size), packet + index, numberOfBytes);
+
+    index += numberOfBytes + 1;
+
+    numberOfBytes = packet[index];
+    index++;
+    memcpy(&((*file).filename), packet + index, numberOfBytes);
+
+    index += numberOfBytes;
+
+    if (ret == START_CTRL_PACKET) {
+      printf("File name : %s\n", file->filename);
+      printf("File size : %d\n\n", file->size);
+    }
+  } else if (packet[index] == DATA_CTRL_PACKET) {
+
+    ret = packet[index];
+    index++;
+    int counterIndex = index;
+    index++;
+
+    unsigned int l2 = packet[index];
+    index++;
+    unsigned int l1 = packet[index];
+    index++;
+    unsigned int k = 256 * l2 + l1;
+    if (packet[8 + k] != getBCC2(packet + 4, k + 4)) {
+      printf("BCC received: %X\n", packet[8 + k]);
+      printf("BCC expected: %X\n", getBCC2(packet + 4, k + 4));
+      return -1;
+    }
+
+    if (k != (length - 10)) {
+      printf("ERRO\n");
+      return -1;
+    }
+
+    if (previousDataCounter == 0) {
+      previousDataCounter = packet[counterIndex];
+    } else {
+      if (previousDataCounter == packet[counterIndex]) {
+        dataCounterCheck = 1;
+        printf("Repeated packet\n");
+      } else {
+        previousDataCounter = packet[counterIndex];
+        dataCounterCheck = 0;
+      }
+    }
+
+    int i;
+    for (i = 0; i < k; i++) {
+      if (dataCounterCheck == 0)
+        write(fp, &packet[index + i], 1);
+    }
+  }
+
+  return ret;
+}
+
+int sendControlPackage(int state, FileInfo file, unsigned char *controlPacket) {
+
+  // TODO: refracting repeated code
+  char fileSize[50];
+
+  memcpy(fileSize, &file.size, sizeof(file.size));
+
+  int controlPacketSize = 0;
+
+  controlPacket[0] = (unsigned char)state;
+  controlPacket[1] = (unsigned char)0; // 0-tamanho do ficheiro
+  controlPacket[2] = (unsigned char)strlen(fileSize);
+  controlPacketSize = 3;
+  // um char é sempre um byte?
+  unsigned int i;
+  for (i = 0; i < strlen(fileSize); i++) {
+    controlPacket[i + 3] = fileSize[i];
+  }
+  controlPacketSize += strlen(fileSize);
+
+  controlPacket[controlPacketSize] = (unsigned char)1; // 0-tamanho do ficheiro
+  controlPacketSize++;
+  controlPacket[controlPacketSize] = (unsigned char)strlen(file.filename);
+  controlPacketSize++;
+
+  for (i = 0; i < strlen(file.filename); i++) {
+    controlPacket[controlPacketSize + i] = file.filename[i];
+  }
+  controlPacketSize += strlen(file.filename);
+
+  return controlPacketSize;
+}
+
+int sendDataPackage(unsigned char *dataPacket, FILE *fp, int sequenceNumber,
+                    int *length) {
+
+  unsigned char buffer[dataSize];
+  int ret;
+  ret = fread(buffer, sizeof(char), dataSize, fp);
+  if (ret == 0) {
+    return 0;
+  } else if (ret < 0) {
     return -1;
   }
 
-  /*reading trama*/
-  char sequenceNumber = 0;
-  appFD = application.fileDescriptor;
-  llread_res = llread(appFD, trama);
-  if (llread_res != 0) {
-    perror("Error llread() :: receive");
-    close(fd);
-    exit(-1);
+  *length = ret + 4; // size of the data and the 4 initial bytes
+
+  // K=256 * L1 + L2
+
+  dataPacket[0] = DATA_CTRL_PACKET;
+  dataPacket[1] = sequenceNumber;
+
+  // L1
+  dataPacket[2] = 0;
+  // L2
+  dataPacket[3] = ret;
+
+  int j;
+  for (j = 0; j < dataSize; j++) {
+    dataPacket[4 + j] = buffer[j];
   }
 
-  while (lenghtTrama == 0 || trama[0] != END_BYTE) {
-    if (lenghtTrama > 0 && sequenceNumber == trama[1]) {
-      int lenghtInfo = trama[2] * 256 + trama[3];
+  return 1;
+}
 
-      write(fd, trama + 4, lenghtInfo);
+int sendData() {
 
-      numBytesReads += lenghtInfo;
-      sequenceNumber++;
-    }
+  char sequenceNumber = N_OF_SEQ_0;
+  int dataCounter = 1;
+  FileInfo file;
+  getFile(file.filename);
+  FILE *fp;
+  fp = fopen(file.filename, "rb");
+  if (fp == NULL) {
+    printf("Could not open file  test.c");
+    return -1;
+  }
+  printf("opened file %s\n", file.filename);
+  (void)signal(SIGALRM, retry);
 
-    if (llread_res != 0) {
-      perror("Error llread() :: receive");
-      close(fd);
-      exit(-1);
+  // Determine file size
+  file.size = fileSize(fp);
+  printf("File size : %d\n", file.size);
+
+  char fileSize[50];
+  memcpy(fileSize, &file.size, sizeof(file.size));
+
+  int packetSize = 5 + strlen(file.filename) + strlen(fileSize);
+
+  unsigned char controlPacket[packetSize];
+
+  int controlPacketSize =
+      sendControlPackage(START_CTRL_PACKET, file, controlPacket);
+
+  controlPacket[controlPacketSize] = sequenceNumber;
+  controlPacketSize++;
+
+  llwrite(application.fileDescriptor, controlPacket, controlPacketSize);
+
+  int dataPacketSize;
+  unsigned char dataPacket[dataSize + 4];
+  int ret = 1;
+  int numberOfRejs = 0;
+  int llwriteRet;
+
+  while (ret != 0) {
+    ret = sendDataPackage(dataPacket, fp, dataCounter, &dataPacketSize);
+
+    if (dataCounter < 255)
+      dataCounter++;
+    else
+      dataCounter = 1;
+    if (ret != 0) {
+      dataPacket[dataPacketSize] = sequenceNumber;
+      dataPacketSize++;
+      llwrite(application.fileDescriptor, dataPacket, dataPacketSize);
+      if (sequenceNumber == N_OF_SEQ_0)
+        sequenceNumber = N_OF_SEQ_1;
+      else
+        sequenceNumber = N_OF_SEQ_0;
     }
   }
 
-  close(fd);
+  controlPacketSize = sendControlPackage(END_CTRL_PACKET, file, controlPacket);
+  controlPacket[controlPacketSize] = sequenceNumber;
+  controlPacketSize++;
 
-  return 0;
+  llwriteRet =
+      llwrite(application.fileDescriptor, controlPacket, controlPacketSize);
+  numberOfRejs += llwriteRet;
+
+  printf("\nFile sent\n\n");
+
+  printf("Number of rejs reiceived : %d\n", numberOfRejs);
+
+  return 1;
+}
+
+int getFile(char *filepath) {
+
+  printf("Enter file path : ");
+  scanf("%s", filepath);
+
+  return 1;
+}
+
+int fileSize(FILE *fd) {
+  struct stat s;
+  if (fstat(fileno(fd), &s) == -1) {
+    return (-1);
+  }
+  return (s.st_size);
 }

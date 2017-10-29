@@ -32,6 +32,11 @@ typedef struct{
 
 app application;
 
+typedef struct {
+  unsigned int size;
+  char filename[MAX_SIZE];
+} FileInfo;
+
 off_t getFileSize(char* trama, int lenghtTrama);
 
 char* getFileName(char* trama, int lenghtTrama);
@@ -41,5 +46,17 @@ char* getFileName(char* trama, int lenghtTrama);
 int connection(char* terminal, int whoCalls);
 
 int receiveData();
+
+int sendControlPackage(int state, FileInfo file, unsigned char *controlPacket);
+
+int processingDataPacket(unsigned char *packet, int length, FileInfo *file, int fp);
+
+int sendDataPackage(unsigned char *dataPacket, FILE *fp, int sequenceNumber, int *length);
+
+int sendData();
+
+int getFile(char *filepath);
+
+int fileSize(FILE *fd);
 
 #endif

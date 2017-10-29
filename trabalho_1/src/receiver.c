@@ -13,9 +13,7 @@ int main(int argc, char *argv[]) {
   fd = connection(argv[1], RECEIVER);
   printf("llopen complete\n");
 
-  char buffer[255];
-  llread(fd, buffer);
-  printf("llread complete\n");
+  receiveData();
 
   // llclose();
   // printf("llclose complete\n");

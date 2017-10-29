@@ -319,7 +319,6 @@ int processingDataFrame(char *frame) {
 }
 
 int readingFrame(int fd, char *frame) {
-  printf("readingFrame\n");
   unsigned char oneByte;
   int state = 0;
   int over = 0;
@@ -329,8 +328,7 @@ int readingFrame(int fd, char *frame) {
 
   while (!over) {
     alarm(timeoutTime);
-    read(fd, oneByte, 1);
-    printf("%x\n", oneByte);
+    read(fd, &oneByte, 1);
     alarm(timeoutTime);
 
     switch (state) {
@@ -372,6 +370,7 @@ int readingFrame(int fd, char *frame) {
         over = 1;
       }
       break;
+    case 5:
     default:
       break;
     }
@@ -393,14 +392,14 @@ int llopen(char *port, int whoCalls) {
   printf("llopen\n");
 
   if (whoCalls == RECEIVER) {
-    open_receiver(port);
+    return open_receiver(port);
   } else if (whoCalls == SENDER) {
-    open_sender(port);
+    return open_sender(port);
 
   } else {
     return -1;
   }
-  return port;
+  // return port;
 }
 
 int llread(int fd, char *buffer) {
@@ -454,9 +453,8 @@ int llwrite(int fd, char *buffer, int length) {
     }
 
     alarm(timeoutTime);
-    printf("%x\n", frame);
     write(fd, frame, frameSize);
-
+    read(fd, temp, 5);
     alarm(timeoutTime);
     i++;
   } while (temp[2] == C_REJ);
