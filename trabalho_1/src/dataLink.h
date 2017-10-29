@@ -84,6 +84,11 @@ int readingFrame(int fd, char *frame);
 /**/
 int resetSettings(int fd);
 
+/* complete - alarm */
+int sendImportantFrame(int fd, char* frame, int length );
+
+int writeTo_tty(int fd, char *buf, int buf_length) ;
+
 /* complete */
 int llopen(char* port,int whoCalls);
 
@@ -94,7 +99,7 @@ int llread(int fd, char* buffer);
 int llwrite(int fd, char* buffer, int length);
 
 /**/
-//int llclose(int fd, int whoCalls);
+int llclose(int fd, int whoCalls);
 
 
 

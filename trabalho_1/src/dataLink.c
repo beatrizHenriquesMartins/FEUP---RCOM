@@ -379,6 +379,47 @@ int readingFrame(int fd, char *frame) {
   return i;
 }
 
+int sendImportantFrame(int fd, char *frame, int length) {
+  printf("sttufing\n");
+
+  stuffing(frame, &length);
+
+  int res;
+
+  tries = 0;
+
+  do {
+    res = write(fd, frame, length);
+    sleep(1);
+    tries++;
+  } while (res < 0 && tries < numberOfTries);
+
+  if (tries == numberOfTries) {
+    perror("Can not write to serial port");
+    return -1;
+  }
+  return 0;
+}
+
+int writeTo_tty(int fd, char *buf, int buf_length) {
+  int totalWrittenChars = 0;
+  int writtenChars = 0;
+
+  while (totalWrittenChars < buf_length) {
+    writtenChars = write(fd, buf, buf_length);
+
+    if (writtenChars <= 0) {
+      printf("Written chars: %d\n", writtenChars);
+      printf("%s\n", strerror(errno));
+      return -1;
+    }
+
+    totalWrittenChars += writtenChars;
+  }
+
+  return 0;
+}
+
 int resetSettings(int fd) {
   printf("resetSettings\n");
   if (close(fd)) {
@@ -462,7 +503,7 @@ int llwrite(int fd, char *buffer, int length) {
   return nRej;
 }
 
-/*int llclose(int fd, int whoCalls) {
+int llclose(int fd, int whoCalls) {
   printf("llclose\n");
 
   char *frame = NULL;
@@ -491,4 +532,4 @@ int llwrite(int fd, char *buffer, int length) {
     }
   }
   return 0;
-}*/
+}

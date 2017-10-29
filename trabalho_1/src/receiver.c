@@ -15,8 +15,8 @@ int main(int argc, char *argv[]) {
 
   receiveData();
 
-  // llclose();
-  // printf("llclose complete\n");
+  llclose(fd, RECEIVER);
+  printf("llclose complete\n");
 
   return 0;
 }

@@ -2,57 +2,7 @@
 
 int numBytesReads = 0;
 unsigned char previousDataCounter = 0;
-int dataSize = 100; // default value
-
-/*
-size_t - size of objs (C++)
-off_t - file objs (POSIX)
-*/
-off_t getFileSize(char *trama, int lenghtTrama) {
-  int i = 1;
-  while (i < lenghtTrama) {
-    if (trama[i] == FILE_SIZE_BYTE) {
-      // necessário fazer conversão de char* to long long
-      return *((off_t *)(trama + i + 2));
-    }
-    i += 2 + trama[i + 1];
-  }
-  return 0;
-}
-
-char *getFileName(char *trama, int lenghtTrama) {
-  int i = 1;
-  while (i < lenghtTrama) {
-    if (trama[i] == FILE_NAME_BYTE) {
-      char *file_name = (char *)malloc((trama[i + 1] + 1) * sizeof(char));
-      // copia da trama para file_name n caracteres
-      memcpy(file_name, trama + i + 2, trama[i + 1]);
-      file_name[(trama[i + 1] + 1)] = 0;
-      return file_name;
-    }
-    i += 2 + trama[i + 1];
-  }
-  return NULL;
-}
-
-/*
-mode_t tem 4 bytes, no entanto
-a trama enviada tem apenas 2, por isso é necessário
-ler apenas 2 e fazer cast
-*/
-mode_t getFileMode(char *trama, int lenghtTrama) {
-  int i = 1;
-
-  while (i < lenghtTrama) {
-    if (trama[i] == FILE_PERMISSIONS_BYTE) {
-      return *((mode_t *)(trama + i + 2));
-    }
-
-    i += 2 + trama[i + 2];
-  }
-
-  return -1;
-}
+int dataSize = 100;
 
 int connection(char *terminal, int whoCalls) {
   if (whoCalls != SENDER && whoCalls != RECEIVER) {
@@ -87,23 +37,23 @@ int receiveData() {
   int ret;
   int fp;
   int bytesRead = 0;
-  int percentage = 0;
+  int percent = 0;
   int packagesLost = 0;
-  int percentageWrite = 0;
-  int numberOfRejs = 0;
-  int frameLength;
+  int percentWrite = 0;
+  int nRejs = 0;
+  int frameSize;
 
   printf("\nStart reading\n");
 
   while (!over) {
 
-    frameLength = llread(application.fileDescriptor, frame);
+    frameSize = llread(application.fileDescriptor, frame);
 
-    if (frameLength == -1) {
+    if (frameSize == -1) {
       packagesLost++;
       ret = -1;
     } else {
-      ret = processingDataPacket(frame, frameLength, &file, fp);
+      ret = processingDataPacket(frame, frameSize, &file, fp);
 
       if (ret == START_CTRL_PACKET) {
         fp = open(file.filename, O_CREAT | O_WRONLY);
@@ -114,11 +64,11 @@ int receiveData() {
       }
 
       if (ret == DATA_CTRL_PACKET) {
-        bytesRead += frameLength - 10;
-        percentage = (bytesRead * 100) / file.size;
-        if ((percentage % 10) == 0 && percentageWrite != (int)percentage) {
-          printf("%d%%\n", percentage);
-          percentageWrite = (int)percentage;
+        bytesRead += frameSize - 10;
+        percent = (bytesRead * 100) / file.size;
+        if ((percent % 10) == 0 && percentWrite != (int)percent) {
+          printf("%d%%\n", percent);
+          percentWrite = (int)percent;
         }
       }
 
@@ -129,7 +79,7 @@ int receiveData() {
 
     if (ret == -1) {
       write(application.fileDescriptor, C_REJ, 5);
-      numberOfRejs++;
+      nRejs++;
     } else {
       if (frame[FLD_CTRL] == N_OF_SEQ_0) {
         write(application.fileDescriptor, C_RR1, 5);
@@ -145,7 +95,7 @@ int receiveData() {
   printf("\nPackages lost : %d\n", packagesLost);
   printf("Total bytes read : %d\n", bytesRead);
   printf("File size : %d\n", file.size);
-  printf("Number of rejs sent : %d\n", numberOfRejs);
+  printf("Number of rejs sent : %d\n", nRejs);
 
   return 1;
 }
@@ -327,7 +277,7 @@ int sendData() {
   int dataPacketSize;
   unsigned char dataPacket[dataSize + 4];
   int ret = 1;
-  int numberOfRejs = 0;
+  int nRejs = 0;
   int llwriteRet;
 
   while (ret != 0) {
@@ -354,11 +304,11 @@ int sendData() {
 
   llwriteRet =
       llwrite(application.fileDescriptor, controlPacket, controlPacketSize);
-  numberOfRejs += llwriteRet;
+  nRejs += llwriteRet;
 
   printf("\nFile sent\n\n");
 
-  printf("Number of rejs reiceived : %d\n", numberOfRejs);
+  printf("Number of rejs reiceived : %d\n", nRejs);
 
   return 1;
 }

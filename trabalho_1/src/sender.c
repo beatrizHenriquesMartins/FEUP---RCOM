@@ -17,8 +17,8 @@ int main(int argc, char *argv[]) {
 
   sendData();
 
-  // llclose();
-  // printf("llclose complete\n");
+  llclose(fd, SENDER);
+  printf("llclose complete\n");
 
   return 0;
 }
