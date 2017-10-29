@@ -1,3 +1,4 @@
+#include "AppLink.h"
 #include "dataLink.h"
 #include <stdio.h>
 
@@ -11,11 +12,11 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  fd = llopen(argv[1], SENDER);
+  fd = connection(argv[1], SENDER);
   printf("llopen complete\n");
 
   char buffer[255];
-  llwrite(fd, buffer, 25);
+  llwrite(fd, buffer, 255);
   printf("llwrite complete\n");
 
   // llclose();

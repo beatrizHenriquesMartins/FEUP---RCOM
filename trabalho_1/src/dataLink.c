@@ -9,7 +9,7 @@ int success = 0;
 int tries = 0;
 char frame[255];
 char temp[5];
-// int fd;
+int fdW;
 struct termios oldtio, newtio;
 
 /**
@@ -17,7 +17,7 @@ struct termios oldtio, newtio;
  */
 void retry() {
   alarm(timeoutTime);
-  // write(fd, frame, frameSize);
+  write(fdW, frame, frameSize);
   numberOfTimeOuts++;
 
   if (tries == numberOfTries) {
@@ -325,13 +325,13 @@ int readingFrame(int fd, char *frame) {
   int over = 0;
   int i = 0;
 
-  //(void)signal(SIGALRM, timeout);
+  (void)signal(SIGALRM, timeout);
 
-  while (over != 1) {
-    // alarm(timeoutTime);
+  while (!over) {
+    alarm(timeoutTime);
     read(fd, oneByte, 1);
     printf("%x\n", oneByte);
-    // alarm(timeoutTime);
+    alarm(timeoutTime);
 
     switch (state) {
     case 0:
@@ -419,11 +419,12 @@ int llread(int fd, char *buffer) {
   if (ret == 0) {
     ret = sizeAfterDestuffing;
   }
-
   return ret;
 }
 
 int llwrite(int fd, char *buffer, int length) {
+  printf("Entering llwrite\n");
+  fdW = fd;
   int sequenceNumber = buffer[length - 1];
   int nRej = 0;
 
@@ -432,7 +433,6 @@ int llwrite(int fd, char *buffer, int length) {
   frame[1] = A_SENDER;
   frame[2] = sequenceNumber;
   frame[3] = frame[1] ^ frame[2];
-
   int i;
   for (i = 0; i < length; i++) {
     frame[i + 4] = buffer[i];
@@ -442,6 +442,7 @@ int llwrite(int fd, char *buffer, int length) {
 
   frame[length + 5] = FLAG;
 
+  tries = 0;
   (void)signal(SIGALRM, retry);
 
   frameSize = stuffing(frame, length + 6);
@@ -453,7 +454,9 @@ int llwrite(int fd, char *buffer, int length) {
     }
 
     alarm(timeoutTime);
+    printf("%x\n", frame);
     write(fd, frame, frameSize);
+
     alarm(timeoutTime);
     i++;
   } while (temp[2] == C_REJ);

@@ -5,7 +5,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <sys/stat.h> //biblioteca que permite obter o mode de um file
+#include <sys/types.h>
+#include <errno.h>
 #include "dataLink.h"
+
+#define DATA_CTRL_PACKET 1
+#define START_CTRL_PACKET 2
+#define END_CTRL_PACKET 3
+#define DATA_SIZE 100
+#define MAX_SIZE 255
 
 #define FILE_SIZE_BYTE 0
 #define FILE_NAME_BYTE 1
@@ -16,32 +25,21 @@
 #define PACKET_DATA_SIZE PACKET_SIZE - PACKET_HEADER_SIZE
 #define FILE_SIZE 10968
 
-struct applicationLayer {
-int fileDescriptor; /*Descritor correspondente à porta série*/
-int status; /*TRANSMITTER | RECEIVER*/
+typedef struct{
+  int fileDescriptor; /*Descritor correspondente à porta série*/
+  int status; /*TRANSMITTER | RECEIVER*/
 }app;
 
 app application;
 
-struct linkLayer {
-char port[20]; /*Dispositivo /dev/ttySx, x = 0, 1*/
-int baudRate; /*Velocidade de transmissão*/
-unsigned int sequenceNumber; /*Número de sequência da trama: 0, 1*/
-unsigned int timeout; /*Valor do temporizador: 1 s*/
-unsigned int numTransmissions; /*Número de tentativas em caso de
-falha*/
-char frame[MAX_SIZE]; /*Trama*/
-}link;
+off_t getFileSize(char* trama, int lenghtTrama);
 
+char* getFileName(char* trama, int lenghtTrama);
 
-int test_connection(char*terminal,int whoCalls);
-/*
-send data
-app layer
-llopen
-send control package
-processing data packet
-senda data package
-*/
+char* getFileName(char* trama, int lenghtTrama);
+
+int connection(char* terminal, int whoCalls);
+
+int receiveData();
 
 #endif
