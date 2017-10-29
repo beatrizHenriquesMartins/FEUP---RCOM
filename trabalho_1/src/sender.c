@@ -12,11 +12,14 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  fd = llopen(argv[1], SENDER); //= connection(argv[1], SENDER);
-  printf("%i\n", fd);
-  // sendData(fd);
-  if (fd != -1)
-    llwrite(fd, "123", strlen("123"));
+  fd = connection(argv[1], SENDER);
+  printf("llopen complete\n");
+
+  if (fd > 0)
+    sendData();
+
+  llclose(fd, SENDER);
+  printf("llclose complete\n");
 
   return 0;
 }

@@ -11,13 +11,14 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  fd = llopen(argv[1], SENDER);
-  printf("%i\n", fd);
+  fd = connection(argv[1], RECEIVER);
+  printf("llopen complete\n");
 
-  // fd = connection(argv[1], RECEIVER);
-  llread(fd, buffer);
-  // printf("llread complete!\n");
-  // receiveData();
+  if (fd > 0)
+    receiveData();
+
+  llclose(fd, RECEIVER);
+  printf("llclose complete\n");
 
   return 0;
 }

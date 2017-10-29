@@ -24,11 +24,13 @@
 #define C_DISC 0x0B
 #define C_UA 0x07
 #define C_RR 0x05
+#define C_RR1 0x85
 #define C_REJ 0x01
 #define ESC 0x7D
 #define ESC_HIDE_BYTE 0x5D
 #define FLAG 0x7E
 #define FLAG_HIDE_BYTE 0x5E
+#define FLD_CTRL 2
 #define N_OF_SEQ_0 0x00
 #define N_OF_SEQ_1 0x40
 
@@ -59,7 +61,7 @@ void createControlFrame(char* frame, char controlByte, int whoCalls);
 char readingArrayStatus(int fd);
 
 /* complete */
-void insertValueAt(int index, int value, char* frame, int lenght);
+void insertValueAt(int index, int value, unsigned char* frame, int lenght);
 
 /* complete */
 void shiftBack(int index, char* frame, int frameSize);
@@ -82,6 +84,11 @@ int readingFrame(int fd, char* frame);
 /**/
 int resetSettings(int fd);
 
+/* complete - alarm */
+int sendImportantFrame(int fd, char* frame, int length );
+
+int writeTo_tty(int fd, char *buf, int buf_length) ;
+
 /* complete */
 int llopen(char* port,int whoCalls);
 
@@ -89,10 +96,10 @@ int llopen(char* port,int whoCalls);
 int llread(int fd, char* buffer);
 
 /**/
-int llwrite(int fd, char* buffer, int length);
+int llwrite(int fd, unsigned char* buffer, int length);
 
 /**/
-//int llclose(int fd, int whoCalls);
+int llclose(int fd, int whoCalls);
 
 
 
