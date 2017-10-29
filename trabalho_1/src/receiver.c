@@ -13,7 +13,8 @@ int main(int argc, char *argv[]) {
   fd = connection(argv[1], RECEIVER);
   printf("llopen complete\n");
 
-  receiveData();
+  if (fd > 0)
+    receiveData();
 
   llclose(fd, RECEIVER);
   printf("llclose complete\n");

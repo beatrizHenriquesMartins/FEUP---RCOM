@@ -3,11 +3,11 @@
 int flag = 1;
 int frameSize = 0;
 int numberOfTries = 3;
-int timeoutTime = 3;
+int timeoutTime = 15;
 int numberOfTimeOuts = 0;
 int success = 0;
 int tries = 0;
-char frame[255];
+unsigned char frame[255];
 char temp[5];
 int fdW;
 struct termios oldtio, newtio;
@@ -218,10 +218,10 @@ char readingArrayStatus(int fd) {
   return -1;
 }
 
-void insertValueAt(int index, int value, char *frame, int lenght) {
+void insertValueAt(int index, int value, unsigned char *frame, int length) {
   int i;
 
-  for (i = lenght - 1; i >= index; i--) {
+  for (i = length - 1; i >= index; i--) {
     frame[i + 1] = frame[i];
   }
 
@@ -271,7 +271,7 @@ int stuffing(unsigned char *frame, int length) {
     }
   }
 
-  return length;
+  return i;
 }
 
 int destuffing(char *frame) {
@@ -323,6 +323,7 @@ int readingFrame(int fd, char *frame) {
   int state = 0;
   int over = 0;
   int i = 0;
+  int j;
 
   (void)signal(SIGALRM, timeout);
 
@@ -370,7 +371,6 @@ int readingFrame(int fd, char *frame) {
         over = 1;
       }
       break;
-    case 5:
     default:
       break;
     }
@@ -462,9 +462,10 @@ int llread(int fd, char *buffer) {
   return ret;
 }
 
-int llwrite(int fd, char *buffer, int length) {
+int llwrite(int fd, unsigned char *buffer, int length) {
   printf("Entering llwrite\n");
   fdW = fd;
+
   int sequenceNumber = buffer[length - 1];
   int nRej = 0;
 
@@ -473,6 +474,7 @@ int llwrite(int fd, char *buffer, int length) {
   frame[1] = A_SENDER;
   frame[2] = sequenceNumber;
   frame[3] = frame[1] ^ frame[2];
+
   int i;
   for (i = 0; i < length; i++) {
     frame[i + 4] = buffer[i];
@@ -480,22 +482,25 @@ int llwrite(int fd, char *buffer, int length) {
 
   frame[length + 4] = getBCC2(buffer, length);
 
-  frame[length + 5] = FLAG;
-
   tries = 0;
   (void)signal(SIGALRM, retry);
 
-  frameSize = stuffing(frame, length + 6);
+  stuffing(frame, length + 6);
+  frame[length + 5] = FLAG;
 
   i = 0;
   do {
     if (i > 0) {
       nRej++;
     }
-
+    int j;
     alarm(timeoutTime);
-    write(fd, frame, frameSize);
+    write(fd, frame, sizeof(frame));
     read(fd, temp, 5);
+    for (j = 0; j < 5; j++) {
+      printf("%x ", temp[j]);
+    }
+    printf("\n");
     alarm(timeoutTime);
     i++;
   } while (temp[2] == C_REJ);

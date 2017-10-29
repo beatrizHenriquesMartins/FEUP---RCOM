@@ -15,7 +15,8 @@ int main(int argc, char *argv[]) {
   fd = connection(argv[1], SENDER);
   printf("llopen complete\n");
 
-  sendData();
+  if (fd > 0)
+    sendData();
 
   llclose(fd, SENDER);
   printf("llclose complete\n");

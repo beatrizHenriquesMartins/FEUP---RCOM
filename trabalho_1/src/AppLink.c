@@ -89,7 +89,7 @@ int receiveData() {
   }
   char command[50] = "gpicview ";
   strcat(command, file.filename);
-  // system(command);
+  system(command);
 
   printf("\nFile read\n");
   printf("\nPackages lost : %d\n", packagesLost);

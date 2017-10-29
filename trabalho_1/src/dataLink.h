@@ -61,7 +61,7 @@ void createControlFrame(char *frame, char controlByte, int whoCalls);
 char readingArrayStatus(int fd);
 
 /* complete */
-void insertValueAt(int index, int value, char* frame, int lenght);
+void insertValueAt(int index, int value, unsigned char* frame, int lenght);
 
 /* complete */
 void shiftBack(int index, char *frame, int frameSize);
@@ -96,7 +96,7 @@ int llopen(char* port,int whoCalls);
 int llread(int fd, char* buffer);
 
 /**/
-int llwrite(int fd, char* buffer, int length);
+int llwrite(int fd, unsigned char* buffer, int length);
 
 /**/
 int llclose(int fd, int whoCalls);
