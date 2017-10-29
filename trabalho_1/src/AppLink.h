@@ -10,6 +10,12 @@
 #include <errno.h>
 #include "dataLink.h"
 
+#define DATA_CTRL_PACKET 1
+#define START_CTRL_PACKET 2
+#define END_CTRL_PACKET 3
+#define DATA_SIZE 100
+#define MAX_SIZE 255
+
 #define FILE_SIZE_BYTE 0
 #define FILE_NAME_BYTE 1
 #define FILE_PERMISSIONS_BYTE 2

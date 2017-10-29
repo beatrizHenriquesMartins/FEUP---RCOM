@@ -320,17 +320,18 @@ int processingDataFrame(char *frame) {
 
 int readingFrame(int fd, char *frame) {
   printf("readingFrame\n");
+
   unsigned char oneByte;
   int state = 0;
   int over = 0;
   int i = 0;
 
-  (void)signal(SIGALRM, timeout);
+  //(void)signal(SIGALRM, timeout);
 
-  while (over == 0) {
+  while (!over) {
     alarm(timeoutTime);
     read(fd, oneByte, 1);
-    // printf("0x%2x\n", frame);
+    printf("0x%2x\n", oneByte);
     alarm(timeoutTime);
 
     switch (state) {
@@ -392,74 +393,79 @@ int llopen(char *port, int whoCalls) {
   printf("llopen\n");
 
   if (whoCalls == RECEIVER) {
-    open_receiver(port);
+    return open_receiver(port);
   } else if (whoCalls == SENDER) {
-    open_sender(port);
+    return open_sender(port);
 
   } else {
     return -1;
   }
-  return atoi(port);
 }
 
 int llread(int fd, char *buffer) {
   printf("llread\n");
 
-  int ret, sizeAfterDestuffing;
+  int res = read(fd, buffer, 3);
+  printf("%s\n", buffer);
 
-  readingFrame(fd, buffer);
+  int ret; /*, sizeAfterDestuffing;
 
-  sizeAfterDestuffing = destuffing(buffer);
+   readingFrame(fd, buffer);
 
-  if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
-    ret = processingDataFrame(buffer);
-  }
+   sizeAfterDestuffing = destuffing(buffer);
 
-  if (ret == 0) {
-    ret = sizeAfterDestuffing;
-  }
+   if (buffer[2] == N_OF_SEQ_0 || buffer[2] == N_OF_SEQ_1) {
+     ret = processingDataFrame(buffer);
+   }
+
+   if (ret == 0) {
+     ret = sizeAfterDestuffing;
+   }*/
 
   return ret;
 }
 
 int llwrite(int fd, char *buffer, int length) {
   printf("llwrite\n");
+  write(0, "543", 3);
+
   int sequenceNumber = buffer[length - 1];
   int nRej = 0;
+  /*
+    length--;
+    frame[0] = FLAG;
+    frame[1] = A_SENDER;
+    frame[2] = sequenceNumber;
+    frame[3] = frame[1] ^ frame[2];
 
-  length--;
-  frame[0] = FLAG;
-  frame[1] = A_SENDER;
-  frame[2] = sequenceNumber;
-  frame[3] = frame[1] ^ frame[2];
-
-  int i;
-  for (i = 0; i < length; i++) {
-    frame[i + 4] = buffer[i];
-  }
-
-  frame[length + 4] = getBCC2(buffer, length);
-
-  frame[length + 5] = FLAG;
-
-  (void)signal(SIGALRM, atende);
-
-  frameSize = stuffing(frame, length + 6);
-
-  i = 0;
-  do {
-    if (i > 0) {
-      nRej++;
+    int i;
+    for (i = 0; i < length; i++) {
+      frame[i + 4] = buffer[i];
     }
 
-    alarm(timeoutTime);
-    printf("%x\n", frame);
-    write(fd, frame, frameSize);
-    read(fd, temp, 5);
-    alarm(timeoutTime);
-    i++;
-  } while (temp[2] == C_REJ);
+    frame[length + 4] = getBCC2(buffer, length);
 
+    frame[length + 5] = FLAG;
+
+    tries = 0;
+    (void)signal(SIGALRM, atende);
+
+    frameSize = stuffing(frame, length + 6);
+
+    i = 0;
+    do {
+      if (i > 0) {
+        nRej++;
+      }
+
+      alarm(timeoutTime);
+      printf("%x\n", frame);
+      write(fd, frame, frameSize);
+      // read(fd, temp, 5);
+      alarm(timeoutTime);
+      i++;
+    } while (temp[2] == C_REJ);
+  */
   return nRej;
 }
 
