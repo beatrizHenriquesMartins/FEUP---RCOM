@@ -67,7 +67,7 @@ void insertValueAt(int index, int value, unsigned char* frame, int lenght);
 void shiftBack(int index, char* frame, int frameSize);
 
 /* complete */
-char getBCC2(unsigned char* frame, unsigned int length);
+unsigned char getBCC2(unsigned char* frame, unsigned int length);
 
 /* complete */
 int stuffing(unsigned char* frame, int length);
@@ -81,26 +81,19 @@ int processingDataFrame(char* frame);
 /* complete */
 int readingFrame(int fd, char* frame);
 
-/**/
+/* complete */
 int resetSettings(int fd);
-
-/* complete - alarm */
-int sendImportantFrame(int fd, char* frame, int length );
-
-int writeTo_tty(int fd, char *buf, int buf_length) ;
 
 /* complete */
 int llopen(char* port,int whoCalls);
 
-/**/
+/* complete */
 int llread(int fd, char* buffer);
 
-/**/
+/* complete */
 int llwrite(int fd, unsigned char* buffer, int length);
 
-/**/
+/* complete */
 int llclose(int fd, int whoCalls);
-
-
 
 #endif

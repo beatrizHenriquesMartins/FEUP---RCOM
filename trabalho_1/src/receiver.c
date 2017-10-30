@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
   }
 
   fd = connection(argv[1], RECEIVER);
-  printf("llopen complete\n");
+  printf("llopen complete\n\n");
 
   if (fd > 0)
     receiveData();

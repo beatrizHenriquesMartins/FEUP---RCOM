@@ -2,13 +2,11 @@
 
 int flag = 1;
 int frameSize = 0;
-int numberOfTries = 3;
-int timeoutTime = 15;
-int numberOfTimeOuts = 0;
-int success = 0;
+int nTries = 3;
+int outTime = 15;
+int nTOuts = 0;
 int tries = 0;
 unsigned char frame[255];
-char temp[5];
 int fdW;
 struct termios oldtio, newtio;
 
@@ -16,14 +14,14 @@ struct termios oldtio, newtio;
  * Functions dealing with alerts
  */
 void retry() {
-  alarm(timeoutTime);
+  alarm(outTime);
   write(fdW, frame, frameSize);
-  numberOfTimeOuts++;
+  nTOuts++;
 
-  if (tries == numberOfTries) {
+  if (tries == nTries) {
     printf(
         "\n\nTIMEOUT : Lost connection to receiver\n Number of tries : %d\n\n",
-        numberOfTries);
+        nTries);
     exit(1);
   }
 
@@ -31,12 +29,17 @@ void retry() {
   printf("\n\nTrying to connect to receiver\nTry number : %d\n\n", tries);
 }
 
+/**
+ * Connection Lost
+ */
 void timeout() {
   printf("TIMEOUT : Connection lost, try again later\n");
   exit(1);
 }
 
-// atende alarme
+/**
+ * atende alarme
+ */
 void atende() {
   printf("alarme # %d\n", tries);
   flag = 1;
@@ -96,6 +99,12 @@ int open_serial_port(char *port, int whoCalls) {
   return fd;
 }
 
+/**
+ * Function to Open Receiver and receive trama SET and send trama UA
+ * @method open_receiver
+ * @param  port          0 or 1 for ttyS0 or ttyS1
+ * @return               file descriptor for serial port opened
+ */
 int open_receiver(char *port) {
   printf("open_receiver\n");
   int fd;
@@ -104,7 +113,7 @@ int open_receiver(char *port) {
   fd = open_serial_port(port, RECEIVER);
 
   // RECEIVE TRAMA SET
-  alarm(timeoutTime);
+  alarm(outTime);
   char controlByte = readingArrayStatus(fd);
   alarm(0);
 
@@ -118,6 +127,12 @@ int open_receiver(char *port) {
   return fd;
 }
 
+/**
+ * Function to Open Sender and send trama SET and receive trama UA
+ * @method open_sender
+ * @param  port        0 or 1 for ttyS0 or ttyS1
+ * @return             file descriptor for serial port opened
+ */
 int open_sender(char *port) {
   printf("open_sender\n");
   char buffer[5];
@@ -133,11 +148,18 @@ int open_sender(char *port) {
     res = write(fd, buffer, 5);
     // READ TRAMA UA
     controlByte = readingArrayStatus(fd);
-  } while (tries < numberOfTries && flag == 1);
+  } while (tries < nTries && flag == 1);
 
   return fd;
 }
 
+/**
+ * Create Control Frame SET, DISC, etc
+ * @method createControlFrame
+ * @param  frame              pointer to frame to create
+ * @param  controlByte        type of frame
+ * @param  whoCalls           who calls the function: SENDER or RECEIVER
+ */
 void createControlFrame(char *frame, char controlByte, int whoCalls) {
   int isAnswer = 0;
   frame[0] = FLAG;
@@ -158,12 +180,18 @@ void createControlFrame(char *frame, char controlByte, int whoCalls) {
   frame[4] = FLAG;
 }
 
+/**
+ * Status Machine for reading Array Status
+ * @method readingArrayStatus
+ * @param  fd                 file descriptor
+ * @return                    Control Camp
+ */
 char readingArrayStatus(int fd) {
   int state = 0;
   char frame_receive[5];
   char var;
   flag = 0;
-  alarm(timeoutTime);
+  alarm(outTime);
   while (state != 5 && flag == 0) {
     int res = read(fd, &var, 1);
     frame_receive[state] = var;
@@ -214,10 +242,16 @@ char readingArrayStatus(int fd) {
       }
     }
   }
-  perror("Damage package");
-  return -1;
 }
 
+/**
+ * Shift forward method in which we insert value on frame at index
+ * @method insertValueAt
+ * @param  index
+ * @param  value
+ * @param  frame
+ * @param  length
+ */
 void insertValueAt(int index, int value, unsigned char *frame, int length) {
   int i;
 
@@ -228,6 +262,13 @@ void insertValueAt(int index, int value, unsigned char *frame, int length) {
   frame[i] = value;
 }
 
+/**
+ * Shift Back Method
+ * @method shiftBack
+ * @param  index
+ * @param  frame
+ * @param  frameSize
+ */
 void shiftBack(int index, char *frame, int frameSize) {
   int over = 0;
 
@@ -242,7 +283,14 @@ void shiftBack(int index, char *frame, int frameSize) {
   } while (!over);
 }
 
-char getBCC2(unsigned char *frame, unsigned int length) {
+/**
+ * Get Block Check Character 2 of Frame
+ * @method getBCC2
+ * @param  frame
+ * @param  length
+ * @return  BCC2
+ */
+unsigned char getBCC2(unsigned char *frame, unsigned int length) {
   unsigned char BCC = 0;
 
   unsigned int i = 0;
@@ -253,6 +301,13 @@ char getBCC2(unsigned char *frame, unsigned int length) {
   return BCC;
 }
 
+/**
+ * Stuffing of frame
+ * @method stuffing
+ * @param  frame
+ * @param  length
+ * @return          size of frame after stuffing
+ */
 int stuffing(unsigned char *frame, int length) {
   int i;
   for (i = 1; i < length - 1; i++) {
@@ -274,6 +329,12 @@ int stuffing(unsigned char *frame, int length) {
   return i;
 }
 
+/**
+ * Destuffing of frame
+ * @method destuffing
+ * @param  frame
+ * @return            size of frame after destuffing
+ */
 int destuffing(char *frame) {
   int over = 0;
 
@@ -292,9 +353,14 @@ int destuffing(char *frame) {
   return i;
 }
 
+/**
+ * Processing Data Frame
+ * @method processingDataFrame
+ * @param  frame
+ * @return                     0 or -1 in case of success or fail
+ */
 int processingDataFrame(char *frame) {
   printf("processingDataFrame\n");
-  int ret = 0;
 
   if (frame[0] != FLAG) {
     return -1;
@@ -315,9 +381,16 @@ int processingDataFrame(char *frame) {
     return -1;
   }
 
-  return ret;
+  return 0;
 }
 
+/**
+ * Reading Frame for llread
+ * @method readingFrame
+ * @param  fd           file descriptor for read
+ * @param  frame
+ * @return              size of frame read
+ */
 int readingFrame(int fd, char *frame) {
   unsigned char oneByte;
   int state = 0;
@@ -328,9 +401,9 @@ int readingFrame(int fd, char *frame) {
   (void)signal(SIGALRM, timeout);
 
   while (!over) {
-    alarm(timeoutTime);
+    alarm(outTime);
     read(fd, &oneByte, 1);
-    alarm(timeoutTime);
+    alarm(outTime);
 
     switch (state) {
     case 0:
@@ -378,47 +451,12 @@ int readingFrame(int fd, char *frame) {
   return i;
 }
 
-int sendImportantFrame(int fd, char *frame, int length) {
-  printf("sttufing\n");
-
-  stuffing(frame, &length);
-
-  int res;
-
-  tries = 0;
-
-  do {
-    res = write(fd, frame, length);
-    sleep(1);
-    tries++;
-  } while (res < 0 && tries < numberOfTries);
-
-  if (tries == numberOfTries) {
-    perror("Can not write to serial port");
-    return -1;
-  }
-  return 0;
-}
-
-int writeTo_tty(int fd, char *buf, int buf_length) {
-  int totalWrittenChars = 0;
-  int writtenChars = 0;
-
-  while (totalWrittenChars < buf_length) {
-    writtenChars = write(fd, buf, buf_length);
-
-    if (writtenChars <= 0) {
-      printf("Written chars: %d\n", writtenChars);
-      printf("%s\n", strerror(errno));
-      return -1;
-    }
-
-    totalWrittenChars += writtenChars;
-  }
-
-  return 0;
-}
-
+/**
+ * Reset Settings and Close File Descriptor
+ * @method resetSettings
+ * @param  fd
+ * @return               0 or -1 in case of success or fail
+ */
 int resetSettings(int fd) {
   printf("resetSettings\n");
   if (close(fd)) {
@@ -428,8 +466,15 @@ int resetSettings(int fd) {
   return 0;
 }
 
+/**
+ * LLOPEN
+ * @method llopen
+ * @param  port      0 or 1 for ttyS0 or ttyS1
+ * @param  whoCalls  SENDER or RECEIVER
+ * @return           file descriptor
+ */
 int llopen(char *port, int whoCalls) {
-  printf("llopen\n");
+  printf("\nllopen\n");
 
   if (whoCalls == RECEIVER) {
     return open_receiver(port);
@@ -442,8 +487,14 @@ int llopen(char *port, int whoCalls) {
   // return port;
 }
 
+/**
+ * LLREAD
+ * @method llread
+ * @param  fd
+ * @param  buffer
+ * @return        size after destuffing
+ */
 int llread(int fd, char *buffer) {
-  printf("llread\n");
 
   int ret, sizeAfterDestuffing;
 
@@ -457,8 +508,15 @@ int llread(int fd, char *buffer) {
   return ret;
 }
 
+/**
+ * LLWRITE
+ * @method llwrite
+ * @param  fd
+ * @param  buffer
+ * @param  length
+ * @return         number of rejections
+ */
 int llwrite(int fd, unsigned char *buffer, int length) {
-  printf("Entering llwrite\n");
   fdW = fd;
 
   int sequenceNumber = buffer[length - 1];
@@ -483,53 +541,91 @@ int llwrite(int fd, unsigned char *buffer, int length) {
   stuffing(frame, length + 6);
   frame[length + 5] = FLAG;
 
+  unsigned char temp[5];
   i = 0;
   do {
     if (i > 0) {
       nRej++;
     }
     int j;
-    alarm(timeoutTime);
+    alarm(outTime);
     write(fd, frame, sizeof(frame));
     read(fd, temp, 5);
-    for (j = 0; j < 5; j++) {
-      printf("%x ", temp[j]);
-    }
-    printf("\n");
-    alarm(timeoutTime);
+    alarm(outTime);
     i++;
   } while (temp[2] == C_REJ);
 
   return nRej;
 }
 
+/**
+ * LLCLOSE
+ * @method llclose
+ * @param  fd
+ * @param  whoCalls SENDER or RECEIVER
+ * @return          0 or -1 in case of success or fail
+ */
 int llclose(int fd, int whoCalls) {
-  printf("llclose\n");
+  printf("\nllclose\n");
 
-  char *frame = NULL;
-  int lenFrame = 0;
-  int res_resetSet = 0;
+  char frame[5];
+  int res_resetSet = 0, res = 0;
+
+  tries = 0;
+  (void)signal(SIGALRM, atende);
+
+  printf("Number of timeouts : %d\n", nTOuts);
 
   if (whoCalls == SENDER) {
     createControlFrame(frame, C_DISC, whoCalls);
-
-    if (sendImportantFrame(fd, frame, lenFrame) != 0) {
-      printf("Couldn't send frame on llclose().\n");
-      res_resetSet = resetSettings(fd);
-    }
-
-    createControlFrame(frame, C_UA, &lenFrame);
-
-    if (writeTo_tty(fd, frame, lenFrame) != 0) {
-      printf("Couldn't write to tty on llclose()\n");
+    if ((res = write(fd, frame, sizeof(frame))) != 5) {
+      printf("llclose :: Couldn't send frame DISC on llclose().\n");
       res_resetSet = resetSettings(fd);
       return -1;
     }
-  } else if (whoCalls == RECEIVER) {
+
+    alarm(outTime);
+    if (readingArrayStatus(fd)) {
+      alarm(outTime);
+      tries = 0;
+    }
+
+    char tramaUA[5] = {FLAG, A_SENDER, C_UA, C_UA, FLAG};
+    if (res = write(fd, &tramaUA, sizeof(tramaUA)) != 5) {
+      printf("llclose :: Couldn't send frame UA on llclose().\n");
+      res_resetSet = resetSettings(fd);
+      return -1;
+    }
+
     res_resetSet = resetSettings(fd);
     if (res_resetSet == 0) {
-      printf("Connection succesfully closed.\n");
+      printf("llclose :: Connection successfully closed.\n");
+    }
+  } else if (whoCalls == RECEIVER) {
+    alarm(outTime);
+    if (readingArrayStatus(fd)) {
+      alarm(outTime);
+      tries = 0;
+    }
+
+    createControlFrame(frame, C_DISC, whoCalls);
+    if ((res = write(fd, frame, sizeof(frame))) != 5) {
+      printf("llclose :: Couldn't send frame DISC on llclose().\n");
+      res_resetSet = resetSettings(fd);
+      return -1;
+    }
+
+    alarm(outTime);
+    if (readingArrayStatus(fd) < 0) {
+      alarm(outTime);
+      tries = 0;
+    }
+
+    res_resetSet = resetSettings(fd);
+    if (res_resetSet == 0) {
+      printf("llclose :: Connection successfully closed.\n");
     }
   }
+
   return 0;
 }

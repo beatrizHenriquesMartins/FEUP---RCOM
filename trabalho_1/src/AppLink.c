@@ -1,9 +1,15 @@
 #include "AppLink.h"
 
-int numBytesReads = 0;
-unsigned char previousDataCounter = 0;
+unsigned char prevDataCounter = 0;
 int dataSize = 100;
 
+/**
+ * Stablishing Connection
+ * @method connection
+ * @param  terminal   0 or 1 for ttyS0 or ttyS1
+ * @param  whoCalls   SENDER or RECEIVER
+ * @return            file descriptor
+ */
 int connection(char *terminal, int whoCalls) {
   if (whoCalls != SENDER && whoCalls != RECEIVER) {
     perror("AppLink :: connection() :: Invalid status.");
@@ -29,6 +35,11 @@ int connection(char *terminal, int whoCalls) {
   return application.fileDescriptor;
 }
 
+/**
+ * Receive Data for receiver
+ * @method receiveData
+ * @return -1 or 0 in case of success or fail
+ */
 int receiveData() {
   unsigned char frame[255];
   int over = 0;
@@ -36,14 +47,11 @@ int receiveData() {
   file.size = 0;
   int ret;
   int fp;
-  int bytesRead = 0;
-  int percent = 0;
   int packagesLost = 0;
-  int percentWrite = 0;
   int nRejs = 0;
   int frameSize;
 
-  printf("\nStart reading\n");
+  printf("AppLink :: Start reading\n");
 
   while (!over) {
 
@@ -58,17 +66,9 @@ int receiveData() {
       if (ret == START_CTRL_PACKET) {
         fp = open(file.filename, O_CREAT | O_WRONLY);
         if (fp == -1) {
-          printf("Could not open file  test.c");
+          printf("AppLink :: Receive Data :: Could not open file %s\n",
+                 file.filename);
           return -1;
-        }
-      }
-
-      if (ret == DATA_CTRL_PACKET) {
-        bytesRead += frameSize - 10;
-        percent = (bytesRead * 100) / file.size;
-        if ((percent % 10) == 0 && percentWrite != (int)percent) {
-          printf("%d%%\n", percent);
-          percentWrite = (int)percent;
         }
       }
 
@@ -87,35 +87,43 @@ int receiveData() {
         write(application.fileDescriptor, C_RR, 5);
     }
   }
+  // OPEN FILE
   char command[50] = "gpicview ";
   strcat(command, file.filename);
   system(command);
 
   printf("\nFile read\n");
   printf("\nPackages lost : %d\n", packagesLost);
-  printf("Total bytes read : %d\n", bytesRead);
   printf("File size : %d\n", file.size);
-  printf("Number of rejs sent : %d\n", nRejs);
+  printf("Number of rejections sent : %d\n", nRejs);
 
-  return 1;
+  return 0;
 }
 
+/**
+ * Processing Data Packet
+ * @method processingDataPacket
+ * @param  packet               Packet to Process
+ * @param  length               Length of above
+ * @param  file                 File to Read
+ * @param  fp                   File Descriptor for file
+ * @return                      -1 in case of fail or status
+ */
 int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
                          int fp) {
 
   int index = 4;
   int numberOfBytes;
   int ret;
-  int dataCounterCheck = 0;
+  int checkCounterData = 0;
 
-  // Testing to see if is a control packet
   if (packet[index] == START_CTRL_PACKET || packet[index] == END_CTRL_PACKET) {
 
     ret = packet[index];
     index += 2;
 
     numberOfBytes = packet[index];
-    index++; // taking packet index to de begginning of the data
+    index++;
     memcpy(&((*file).size), packet + index, numberOfBytes);
 
     index += numberOfBytes + 1;
@@ -142,32 +150,32 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
     unsigned int l1 = packet[index];
     index++;
     unsigned int k = 256 * l2 + l1;
-    if (packet[8 + k] != getBCC2(packet + 4, k + 4)) {
+    unsigned char expect = getBCC2(packet + 4, k + 4);
+    if (packet[8 + k] != expect) {
       printf("BCC received: %X\n", packet[8 + k]);
       printf("BCC expected: %X\n", getBCC2(packet + 4, k + 4));
       return -1;
     }
 
     if (k != (length - 10)) {
-      printf("ERRO\n");
       return -1;
     }
 
-    if (previousDataCounter == 0) {
-      previousDataCounter = packet[counterIndex];
+    if (prevDataCounter == 0) {
+      prevDataCounter = packet[counterIndex];
     } else {
-      if (previousDataCounter == packet[counterIndex]) {
-        dataCounterCheck = 1;
+      if (prevDataCounter == packet[counterIndex]) {
+        checkCounterData = 1;
         printf("Repeated packet\n");
       } else {
-        previousDataCounter = packet[counterIndex];
-        dataCounterCheck = 0;
+        prevDataCounter = packet[counterIndex];
+        checkCounterData = 0;
       }
     }
 
     int i;
     for (i = 0; i < k; i++) {
-      if (dataCounterCheck == 0)
+      if (checkCounterData == 0)
         write(fp, &packet[index + i], 1);
     }
   }
@@ -175,9 +183,16 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
   return ret;
 }
 
+/**
+ * Send Control Package
+ * @method sendControlPackage
+ * @param  state
+ * @param  file
+ * @param  controlPacket
+ * @return                     size of control package
+ */
 int sendControlPackage(int state, FileInfo file, unsigned char *controlPacket) {
 
-  // TODO: refracting repeated code
   char fileSize[50];
 
   memcpy(fileSize, &file.size, sizeof(file.size));
@@ -185,17 +200,16 @@ int sendControlPackage(int state, FileInfo file, unsigned char *controlPacket) {
   int controlPacketSize = 0;
 
   controlPacket[0] = (unsigned char)state;
-  controlPacket[1] = (unsigned char)0; // 0-tamanho do ficheiro
+  controlPacket[1] = (unsigned char)0;
   controlPacket[2] = (unsigned char)strlen(fileSize);
   controlPacketSize = 3;
-  // um char é sempre um byte?
   unsigned int i;
   for (i = 0; i < strlen(fileSize); i++) {
     controlPacket[i + 3] = fileSize[i];
   }
   controlPacketSize += strlen(fileSize);
 
-  controlPacket[controlPacketSize] = (unsigned char)1; // 0-tamanho do ficheiro
+  controlPacket[controlPacketSize] = (unsigned char)1;
   controlPacketSize++;
   controlPacket[controlPacketSize] = (unsigned char)strlen(file.filename);
   controlPacketSize++;
@@ -208,6 +222,15 @@ int sendControlPackage(int state, FileInfo file, unsigned char *controlPacket) {
   return controlPacketSize;
 }
 
+/**
+ * Send Data Package
+ * @method sendDataPackage
+ * @param  dataPacket
+ * @param  fp
+ * @param  sequenceNumber
+ * @param  length
+ * @return                  1
+ */
 int sendDataPackage(unsigned char *dataPacket, FILE *fp, int sequenceNumber,
                     int *length) {
 
@@ -220,16 +243,11 @@ int sendDataPackage(unsigned char *dataPacket, FILE *fp, int sequenceNumber,
     return -1;
   }
 
-  *length = ret + 4; // size of the data and the 4 initial bytes
-
-  // K=256 * L1 + L2
+  *length = ret + 4;
 
   dataPacket[0] = DATA_CTRL_PACKET;
   dataPacket[1] = sequenceNumber;
-
-  // L1
   dataPacket[2] = 0;
-  // L2
   dataPacket[3] = ret;
 
   int j;
@@ -240,6 +258,11 @@ int sendDataPackage(unsigned char *dataPacket, FILE *fp, int sequenceNumber,
   return 1;
 }
 
+/**
+ * Send Data for sender
+ * @method sendData
+ * @return 1
+ */
 int sendData() {
 
   char sequenceNumber = N_OF_SEQ_0;
@@ -255,7 +278,6 @@ int sendData() {
   printf("opened file %s\n", file.filename);
   (void)signal(SIGALRM, retry);
 
-  // Determine file size
   file.size = fileSize(fp);
   printf("File size : %d\n", file.size);
 
@@ -308,11 +330,17 @@ int sendData() {
 
   printf("\nFile sent\n\n");
 
-  printf("Number of rejs reiceived : %d\n", nRejs);
+  printf("Number of rejections received : %d\n", nRejs);
 
   return 1;
 }
 
+/**
+ * Get File Path from command Line
+ * @method getFile
+ * @param  filepath
+ * @return          1
+ */
 int getFile(char *filepath) {
 
   printf("Enter file path : ");
@@ -321,6 +349,12 @@ int getFile(char *filepath) {
   return 1;
 }
 
+/**
+ * Get File Size
+ * @method fileSize
+ * @param  fd       pointer to File
+ * @return          size of file
+ */
 int fileSize(FILE *fd) {
   struct stat s;
   if (fstat(fileno(fd), &s) == -1) {

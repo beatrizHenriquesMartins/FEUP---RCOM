@@ -3,7 +3,7 @@
 #include <stdio.h>
 
 int main(int argc, char *argv[]) {
-  printf("sender main\n");
+
   (void)signal(SIGALRM, atende); // instala  rotina que atende interrupcao
   int fd;
 
@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   }
 
   fd = connection(argv[1], SENDER);
-  printf("llopen complete\n");
+  printf("llopen complete\n\n");
 
   if (fd > 0)
     sendData();
