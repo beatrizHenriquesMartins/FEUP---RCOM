@@ -18,16 +18,16 @@ int connection(char *terminal, int whoCalls) {
 
   application.status = whoCalls;
 
-  int caller = NULL;
+  /*int caller = NULL;
   if (strcmp("0", terminal) == 0) {
     caller = SENDER;
   } else if (strcmp("1", terminal) == 0) {
     caller = RECEIVER;
   } else {
     perror("AppLink :: connection() :: terminal failed");
-  }
+  }*/
 
-  application.fileDescriptor = llopen(terminal, caller);
+  application.fileDescriptor = llopen(terminal, whoCalls);
   if (application.fileDescriptor < 0) {
     perror("AppLink :: connection() :: llopen failed");
     return -1;
