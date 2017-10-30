@@ -3,7 +3,7 @@
 int flag = 1;
 int frameSize = 0;
 int nTries = 3;
-int outTime = 15;
+int outTime = 3;
 int nTOuts = 0;
 int tries = 0;
 unsigned char frame[255];
@@ -44,7 +44,6 @@ void atende() {
 	printf("alarme # %d\n", tries);
 	flag = 1;
 	tries++;
-	nTOuts++;
 }
 
 /**
@@ -110,13 +109,13 @@ int open_receiver(char *port) {
 	printf("open_receiver\n");
 	int fd;
 
-	(void) signal(SIGALRM, timeout);
+	//(void) signal(SIGALRM, timeout);
 	fd = open_serial_port(port, RECEIVER);
 
 	// RECEIVE TRAMA SET
-	alarm(outTime);
+	///alarm(outTime);
 	char controlByte = readingArrayStatus(fd);
-	alarm(0);
+	//alarm(0);
 
 	// WRITE TRAMA UA
 	char tramaUA[5] = { FLAG, A_SENDER, C_UA, C_UA, FLAG };
@@ -402,9 +401,7 @@ int readingFrame(int fd, char *frame) {
 	(void) signal(SIGALRM, timeout);
 
 	while (!over) {
-		alarm(outTime);
 		read(fd, &oneByte, 1);
-		alarm(outTime);
 
 		switch (state) {
 		case 0:
@@ -518,6 +515,7 @@ int llread(int fd, char *buffer) {
  * @return         number of rejections
  */
 int llwrite(int fd, unsigned char *buffer, int length) {
+        printf("nTries: %d\n",nTries);
 	fdW = fd;
 
 	int sequenceNumber = buffer[length - 1];
