@@ -44,6 +44,7 @@ void atende() {
   printf("alarme # %d\n", tries);
   flag = 1;
   tries++;
+  nTOuts++;
 }
 
 /**
@@ -574,8 +575,6 @@ int llclose(int fd, int whoCalls) {
   tries = 0;
   (void)signal(SIGALRM, atende);
 
-  printf("Number of timeouts : %d\n", nTOuts);
-
   if (whoCalls == SENDER) {
     createControlFrame(frame, C_DISC, whoCalls);
     if ((res = write(fd, frame, sizeof(frame))) != 5) {
@@ -626,6 +625,8 @@ int llclose(int fd, int whoCalls) {
       printf("llclose :: Connection successfully closed.\n");
     }
   }
+
+  printf("Number of timeouts : %d\n", nTOuts);
 
   return 0;
 }
