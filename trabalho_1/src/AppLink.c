@@ -29,7 +29,7 @@ int connection(char *terminal, int whoCalls) {
     perror("AppLink :: connection() :: terminal failed");
   }
 
-  application.fileDescriptor = llopen(terminal, whoCalls);
+  application.fileDescriptor = llopen(terminal, caller);
   if (application.fileDescriptor < 0) {
     perror("AppLink :: connection() :: llopen failed");
     return -1;
