@@ -148,7 +148,7 @@ int open_sender(char *port) {
 	do {
 		res = write(fd, buffer, 5);
 		// READ TRAMA UA
-		controlByte = readingArrayUA(fd);
+		controlByte = readingArrayStatus(fd);
 	} while (tries < nTries && flag == 1);
 
 	return fd;
@@ -221,10 +221,11 @@ char readingArrayStatus(int fd) {
 				break;
 			}
 			case 3: {
-				if (var == (frame_receive[2] ^ frame_receive[1])) {
+				if (var == (frame_receive[2] ^ frame_receive[1]) ||
+						(frame_receive[2] == C_UA && var == frame_receive[2])) {
 					state = 4;
 				} else {
-					printf("Damage package: %x", var);
+					printf("Damage package\n");
 					return -1;
 				}
 				break;
@@ -568,7 +569,7 @@ int llwrite(int fd, unsigned char *buffer, int length) {
 int llclose(int fd, int whoCalls) {
 	printf("\nllclose\n");
 
-	unsigned char frame[5];
+	char frame[5];
 	int res_resetSet = 0, res = 0;
 
 	tries = 0;
@@ -576,36 +577,39 @@ int llclose(int fd, int whoCalls) {
 
 	if (whoCalls == SENDER) {
 		createControlFrame(frame, C_DISC, whoCalls);
-		if ((res = write(fd, frame, sizeof(frame))) != 5) {
+		if ((res = write(fd, &frame, sizeof(frame))) != 5) {
 			printf("llclose :: Couldn't send frame DISC on llclose().\n");
 			res_resetSet = resetSettings(fd);
 			return -1;
 		}
 
 		alarm(outTime);
-		if (readingArrayDISC(fd)) {
+		if (readingArrayStatus(fd)) {
 			alarm(outTime);
 			tries = 0;
 		}
 
-		char tramaUA[5] = { FLAG, A_SENDER, C_UA, C_UA, FLAG };
+		char tramaUA[5] = { FLAG, A_SENDER, C_UA, C_UA ^ A_SENDER, FLAG };
 		if (res = write(fd, &tramaUA, sizeof(tramaUA)) != 5) {
 			printf("llclose :: Couldn't send frame UA on llclose().\n");
 			res_resetSet = resetSettings(fd);
 			return -1;
 		}
+        sleep(1);
 
 		res_resetSet = resetSettings(fd);
 		if (res_resetSet == 0) {
 			printf("llclose :: Connection successfully closed.\n");
 		}
 	} else if (whoCalls == RECEIVER) {
+
 		alarm(outTime);
-		if (readingArrayDISC(fd)) {
+		res = 0;
+		if ((res = readingArrayStatus(fd)) != -1) {
 			alarm(outTime);
 			tries = 0;
-			printf("res: %x", res);
 		}
+         sleep(1);
 
 		createControlFrame(frame, C_DISC, whoCalls);
 		if ((res = write(fd, frame, sizeof(frame))) != 5) {
@@ -613,8 +617,10 @@ int llclose(int fd, int whoCalls) {
 			res_resetSet = resetSettings(fd);
 			return -1;
 		}
+		res = 0;
 		alarm(outTime);
-		if (readingArrayUA(fd) < 0) {
+		if ((res = readingArrayStatus(fd)) != -1) {
+			printf("UA %d\n",res);
 			alarm(outTime);
 			tries = 0;
 		}
@@ -630,131 +636,4 @@ int llclose(int fd, int whoCalls) {
 	return 0;
 }
 
-/**
- * Status Machine for reading DISC
- * @method readingArrayStatus
- * @param  fd                 file descriptor
- * @return                    Control Camp
- */
-char readingArrayDISC(int fd) {
-	int state = 0;
-	unsigned char frame_receive[5];
-	unsigned char var;
-	flag = 0;
-	alarm(outTime);
-	while (state != 5 && flag == 0) {
-		int res = read(fd, &var, 1);
-		frame_receive[state] = var;
-		if (res > 0) {
-			switch (state) {
-			case 0: {
-				if (var == FLAG) {
-					state = 1;
-				}
-				break;
-			}
-			case 1: {
-				if (var != FLAG) {
-					state = 2;
-				} else {
-					state = 1;
-				}
-				break;
-			}
-			case 2: {
-				if (var == C_DISC) {
-					state = 3;
-				} else {
-					state = 1;
-				}
-				break;
-			}
-			case 3: {
-				if (var
-						== (frame_receive[2] == C_DISC
-								&& var == frame_receive[2])) {
-					state = 4;
-				} else {
-					printf("Damage package: %x\n", var);
-					return -1;
-				}
-				break;
-			}
-			case 4: {
-				if (var != FLAG) {
-					state = 0;
-				} else {
-					state = 5;
-					alarm(0);
-					return frame_receive[2];
-				}
-				break;
-			}
-			}
-		}
-	}
-}
 
-/**
- * Status Machine for reading DISC
- * @method readingArrayStatus
- * @param  fd                 file descriptor
- * @return                    Control Camp
- */
-char readingArrayUA(int fd) {
-	int state = 0;
-	unsigned char frame_receive[5];
-	unsigned char var;
-	flag = 0;
-	alarm(outTime);
-	while (state != 5 && flag == 0) {
-		int res = read(fd, &var, 1);
-		frame_receive[state] = var;
-		if (res > 0) {
-			switch (state) {
-			case 0: {
-				if (var == FLAG) {
-					state = 1;
-				}
-				break;
-			}
-			case 1: {
-				if (var != FLAG) {
-					state = 2;
-				} else {
-					state = 1;
-				}
-				break;
-			}
-			case 2: {
-				if (var == C_UA) {
-					state = 3;
-				} else {
-					state = 1;
-				}
-				break;
-			}
-			case 3: {
-				if (var
-						== (frame_receive[2] == C_UA && var == frame_receive[2])) {
-					state = 4;
-				} else {
-					printf("Damage package: %x\n", var);
-					return -1;
-				}
-				break;
-			}
-			case 4: {
-				if (var != FLAG) {
-					state = 0;
-				} else {
-					state = 5;
-					alarm(0);
-					return frame_receive[2];
-				}
-				break;
-			}
-			}
-		}
-	}
-}

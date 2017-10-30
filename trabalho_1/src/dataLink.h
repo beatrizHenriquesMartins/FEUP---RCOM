@@ -96,10 +96,4 @@ int llwrite(int fd, unsigned char* buffer, int length);
 /* complete */
 int llclose(int fd, int whoCalls);
 
-/* complete */
-char readingArrayDISC(int fd);
-
-/* complete */
-char readingArrayUA(int fd);
-
 #endif

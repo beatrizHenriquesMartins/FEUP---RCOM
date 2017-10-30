@@ -90,7 +90,7 @@ int receiveData() {
     }
   }
   // OPEN FILE
-  char command[50] = "gpicview ";
+  char command[50] = "xdg-open ";
   strcat(command, file.filename);
   system(command);
 
