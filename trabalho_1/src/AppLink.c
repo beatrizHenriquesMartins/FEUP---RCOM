@@ -18,14 +18,16 @@ int connection(char *terminal, int whoCalls) {
 
   application.status = whoCalls;
 
-  /*int caller = NULL;
-  if (strcmp("0", terminal) == 0) {
+  int caller = NULL;
+  if ((strcmp("0", terminal) == 0 || strcmp("1", terminal) == 0) &&
+      whoCalls == SENDER) {
     caller = SENDER;
-  } else if (strcmp("1", terminal) == 0) {
+  } else if ((strcmp("0", terminal) == 0 || strcmp("1", terminal) == 0) &&
+             whoCalls == RECEIVER) {
     caller = RECEIVER;
   } else {
     perror("AppLink :: connection() :: terminal failed");
-  }*/
+  }
 
   application.fileDescriptor = llopen(terminal, whoCalls);
   if (application.fileDescriptor < 0) {
@@ -113,8 +115,8 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
                          int fp) {
 
   int index = 4;
-  int numberOfBytes;
-  int ret;
+  int numberOfBytes = 0;
+  int ret = 0;
   int checkCounterData = 0;
 
   if (packet[index] == START_CTRL_PACKET || packet[index] == END_CTRL_PACKET) {
@@ -140,6 +142,7 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
     }
   } else if (packet[index] == DATA_CTRL_PACKET) {
 
+
     ret = packet[index];
     index++;
     int counterIndex = index;
@@ -147,10 +150,13 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
 
     unsigned int l2 = packet[index];
     index++;
+
     unsigned int l1 = packet[index];
     index++;
-    unsigned int k = 256 * l2 + l1;
+    unsigned int k = l2*256  + l1;
+
     unsigned char expect = getBCC2(packet + 4, k + 4);
+
     if (packet[8 + k] != expect) {
       printf("BCC received: %X\n", packet[8 + k]);
       printf("BCC expected: %X\n", getBCC2(packet + 4, k + 4));
@@ -191,35 +197,35 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
  * @param  controlPacket
  * @return                     size of control package
  */
-int sendControlPackage(int state, FileInfo file, unsigned char *controlPacket) {
+int sendControlPackage(int state, FileInfo file, unsigned char *ctrlPacket) {
 
   char fileSize[50];
 
   memcpy(fileSize, &file.size, sizeof(file.size));
 
-  int controlPacketSize = 0;
+  int ctrlPacketSize = 0;
 
-  controlPacket[0] = (unsigned char)state;
-  controlPacket[1] = (unsigned char)0;
-  controlPacket[2] = (unsigned char)strlen(fileSize);
-  controlPacketSize = 3;
+  ctrlPacket[0] = (unsigned char)state;
+  ctrlPacket[1] = (unsigned char)0;
+  ctrlPacket[2] = (unsigned char)strlen(fileSize);
+  ctrlPacketSize = 3;
   unsigned int i;
   for (i = 0; i < strlen(fileSize); i++) {
-    controlPacket[i + 3] = fileSize[i];
+    ctrlPacket[i + 3] = fileSize[i];
   }
-  controlPacketSize += strlen(fileSize);
+  ctrlPacketSize += strlen(fileSize);
 
-  controlPacket[controlPacketSize] = (unsigned char)1;
-  controlPacketSize++;
-  controlPacket[controlPacketSize] = (unsigned char)strlen(file.filename);
-  controlPacketSize++;
+  ctrlPacket[ctrlPacketSize] = (unsigned char)1;
+  ctrlPacketSize++;
+  ctrlPacket[ctrlPacketSize] = (unsigned char)strlen(file.filename);
+  ctrlPacketSize++;
 
   for (i = 0; i < strlen(file.filename); i++) {
-    controlPacket[controlPacketSize + i] = file.filename[i];
+    ctrlPacket[ctrlPacketSize + i] = file.filename[i];
   }
-  controlPacketSize += strlen(file.filename);
+  ctrlPacketSize += strlen(file.filename);
 
-  return controlPacketSize;
+  return ctrlPacketSize;
 }
 
 /**
