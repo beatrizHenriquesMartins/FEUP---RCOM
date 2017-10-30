@@ -113,9 +113,7 @@ int open_receiver(char *port) {
 	fd = open_serial_port(port, RECEIVER);
 
 	// RECEIVE TRAMA SET
-	alarm(outTime);
 	char controlByte = readingArrayStatus(fd);
-	alarm(0);
 
 	// WRITE TRAMA UA
 	char tramaUA[5] = { FLAG, A_SENDER, C_UA, C_UA, FLAG };
@@ -146,10 +144,12 @@ int open_sender(char *port) {
 	createControlFrame(buffer, C_SET, SENDER);
 	do {
 		res = write(fd, buffer, 5);
+    signal(SIGALRM,atende);
+		alarm(outTime);
 		// READ TRAMA UA
-                (void) signal(SIGALRM,atende);
 		controlByte = readingArrayStatus(fd);
 	} while (tries < nTries && flag == 1);
+	alarm(0);
 
 	return fd;
 }
@@ -192,7 +192,6 @@ char readingArrayStatus(int fd) {
 	unsigned char frame_receive[5];
 	unsigned char var;
 	flag = 0;
-	alarm(outTime);
 	while (state != 5 && flag == 0) {
 		int res = read(fd, &var, 1);
 		frame_receive[state] = var;
@@ -235,7 +234,6 @@ char readingArrayStatus(int fd) {
 					state = 0;
 				} else {
 					state = 5;
-					alarm(0);
 					return frame_receive[2];
 				}
 				break;
@@ -636,5 +634,3 @@ int llclose(int fd, int whoCalls) {
 
 	return 0;
 }
-
-

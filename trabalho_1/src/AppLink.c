@@ -143,15 +143,15 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
   } else if (packet[index] == DATA_CTRL_PACKET) {
 
 
-    ret = packet[index];
+    ret = packet[0];
     index++;
     int counterIndex = index;
     index++;
 
-    unsigned int l2 = packet[index];
+    unsigned int l2 = packet[2];
     index++;
 
-    unsigned int l1 = packet[index];
+    unsigned int l1 = packet[3];
     index++;
     unsigned int k = l2*256  + l1;
 
@@ -297,8 +297,8 @@ int sendData() {
   int controlPacketSize =
       sendControlPackage(START_CTRL_PACKET, file, controlPacket);
 
-  controlPacket[controlPacketSize] = sequenceNumber;
-  controlPacketSize++;
+  // controlPacket[controlPacketSize] = sequenceNumber;
+  // controlPacketSize++;
 
   llwrite(application.fileDescriptor, controlPacket, controlPacketSize);
 
@@ -316,8 +316,8 @@ int sendData() {
     else
       dataCounter = 1;
     if (ret != 0) {
-      dataPacket[dataPacketSize] = sequenceNumber;
-      dataPacketSize++;
+      // dataPacket[dataPacketSize] = sequenceNumber;
+      // dataPacketSize++;
       llwrite(application.fileDescriptor, dataPacket, dataPacketSize);
       if (sequenceNumber == N_OF_SEQ_0)
         sequenceNumber = N_OF_SEQ_1;
@@ -327,8 +327,8 @@ int sendData() {
   }
 
   controlPacketSize = sendControlPackage(END_CTRL_PACKET, file, controlPacket);
-  controlPacket[controlPacketSize] = sequenceNumber;
-  controlPacketSize++;
+  // controlPacket[controlPacketSize] = sequenceNumber;
+  // controlPacketSize++;
 
   llwriteRet =
       llwrite(application.fileDescriptor, controlPacket, controlPacketSize);
