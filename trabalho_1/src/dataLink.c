@@ -584,8 +584,8 @@ int llclose(int fd, int whoCalls) {
     }
 
     alarm(outTime);
-    if (readingArrayStatus(fd)) {
-      alarm(outTime);
+    if ((res = readingArrayStatus(fd)) != -1) {
+      alarm(0);
       tries = 0;
     }
 
@@ -606,7 +606,7 @@ int llclose(int fd, int whoCalls) {
     alarm(outTime);
     res = 0;
     if ((res = readingArrayStatus(fd)) != -1) {
-      alarm(outTime);
+      alarm(0);
       tries = 0;
     }
     sleep(1);
@@ -621,7 +621,7 @@ int llclose(int fd, int whoCalls) {
     alarm(outTime);
     if ((res = readingArrayStatus(fd)) != -1) {
       printf("UA %d\n", res);
-      alarm(outTime);
+      alarm(0);
       tries = 0;
     }
 
