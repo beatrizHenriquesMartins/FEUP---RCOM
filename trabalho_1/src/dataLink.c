@@ -119,7 +119,7 @@ int open_receiver(char *port) {
   alarm(0);
 
   // WRITE TRAMA UA
-  char tramaUA[5] = {FLAG, A_SENDER, C_UA, C_UA, FLAG};
+  char tramaUA[5] = {FLAG, A_SENDER, C_UA, A_SENDER ^ C_UA, FLAG};
   int res;
   do {
     res = write(fd, &tramaUA, sizeof(tramaUA));
@@ -222,8 +222,7 @@ char readingArrayStatus(int fd) {
         break;
       }
       case 3: {
-        if (var == (frame_receive[2] ^ frame_receive[1]) ||
-            (frame_receive[2] == C_UA && var == frame_receive[2])) {
+        if (var == (frame_receive[2] ^ frame_receive[1])) {
           state = 4;
         } else {
           printf("Damage package\n");
@@ -399,12 +398,12 @@ int readingFrame(int fd, char *frame) {
   int i = 0;
   int j;
 
-  (void)signal(SIGALRM, timeout);
+  //(void)signal(SIGALRM, timeout);
 
   while (!over) {
-    alarm(outTime);
+    // alarm(outTime);
     read(fd, &oneByte, 1);
-    alarm(outTime);
+    // alarm(outTime);
 
     switch (state) {
     case 0:
@@ -485,7 +484,6 @@ int llopen(char *port, int whoCalls) {
   } else {
     return -1;
   }
-  // return port;
 }
 
 /**
@@ -537,7 +535,7 @@ int llwrite(int fd, unsigned char *buffer, int length) {
   frame[length + 4] = getBCC2(buffer, length);
 
   tries = 0;
-  (void)signal(SIGALRM, retry);
+  //  (void)signal(SIGALRM, retry);
 
   stuffing(frame, length + 6);
   frame[length + 5] = FLAG;
@@ -549,10 +547,10 @@ int llwrite(int fd, unsigned char *buffer, int length) {
       nRej++;
     }
     int j;
-    alarm(outTime);
+    //  alarm(outTime);
     write(fd, frame, sizeof(frame));
     read(fd, temp, 5);
-    alarm(outTime);
+    //  alarm(outTime);
     i++;
   } while (temp[2] == C_REJ);
 
