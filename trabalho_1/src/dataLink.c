@@ -3,7 +3,7 @@
 int flag = 1;
 int frameSize = 0;
 int nTries = 3;
-int outTime = 15;
+int outTime = 3;
 int nTOuts = 0;
 int tries = 0;
 unsigned char frame[255];
@@ -44,6 +44,7 @@ void atende() {
   printf("alarme # %d\n", tries);
   flag = 1;
   tries++;
+  nTOuts++;
 }
 
 /**
@@ -147,7 +148,9 @@ int open_sender(char *port) {
   do {
     res = write(fd, buffer, 5);
     // READ TRAMA UA
+    alarm(outTime);
     controlByte = readingArrayStatus(fd);
+    alarm(0);
   } while (tries < nTries && flag == 1);
 
   return fd;
@@ -188,10 +191,9 @@ void createControlFrame(char *frame, char controlByte, int whoCalls) {
  */
 char readingArrayStatus(int fd) {
   int state = 0;
-  char frame_receive[5];
-  char var;
+  unsigned char frame_receive[5];
+  unsigned char var;
   flag = 0;
-  alarm(outTime);
   while (state != 5 && flag == 0) {
     int res = read(fd, &var, 1);
     frame_receive[state] = var;
@@ -224,7 +226,7 @@ char readingArrayStatus(int fd) {
             (frame_receive[2] == C_UA && var == frame_receive[2])) {
           state = 4;
         } else {
-          perror("Damage package");
+          printf("Damage package\n");
           return -1;
         }
         break;
@@ -234,7 +236,6 @@ char readingArrayStatus(int fd) {
           state = 0;
         } else {
           state = 5;
-          alarm(0);
           return frame_receive[2];
         }
         break;
@@ -574,11 +575,9 @@ int llclose(int fd, int whoCalls) {
   tries = 0;
   (void)signal(SIGALRM, atende);
 
-  printf("Number of timeouts : %d\n", nTOuts);
-
   if (whoCalls == SENDER) {
     createControlFrame(frame, C_DISC, whoCalls);
-    if ((res = write(fd, frame, sizeof(frame))) != 5) {
+    if ((res = write(fd, &frame, sizeof(frame))) != 5) {
       printf("llclose :: Couldn't send frame DISC on llclose().\n");
       res_resetSet = resetSettings(fd);
       return -1;
@@ -590,23 +589,27 @@ int llclose(int fd, int whoCalls) {
       tries = 0;
     }
 
-    char tramaUA[5] = {FLAG, A_SENDER, C_UA, C_UA, FLAG};
+    char tramaUA[5] = {FLAG, A_SENDER, C_UA, C_UA ^ A_SENDER, FLAG};
     if (res = write(fd, &tramaUA, sizeof(tramaUA)) != 5) {
       printf("llclose :: Couldn't send frame UA on llclose().\n");
       res_resetSet = resetSettings(fd);
       return -1;
     }
+    sleep(1);
 
     res_resetSet = resetSettings(fd);
     if (res_resetSet == 0) {
       printf("llclose :: Connection successfully closed.\n");
     }
   } else if (whoCalls == RECEIVER) {
+
     alarm(outTime);
-    if (readingArrayStatus(fd)) {
+    res = 0;
+    if ((res = readingArrayStatus(fd)) != -1) {
       alarm(outTime);
       tries = 0;
     }
+    sleep(1);
 
     createControlFrame(frame, C_DISC, whoCalls);
     if ((res = write(fd, frame, sizeof(frame))) != 5) {
@@ -614,9 +617,10 @@ int llclose(int fd, int whoCalls) {
       res_resetSet = resetSettings(fd);
       return -1;
     }
-
+    res = 0;
     alarm(outTime);
-    if (readingArrayStatus(fd) < 0) {
+    if ((res = readingArrayStatus(fd)) != -1) {
+      printf("UA %d\n", res);
       alarm(outTime);
       tries = 0;
     }
@@ -626,6 +630,8 @@ int llclose(int fd, int whoCalls) {
       printf("llclose :: Connection successfully closed.\n");
     }
   }
+
+  printf("Number of timeouts : %d\n", nTOuts);
 
   return 0;
 }
