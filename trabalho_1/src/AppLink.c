@@ -142,7 +142,6 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
     }
   } else if (packet[index] == DATA_CTRL_PACKET) {
 
-
     ret = packet[index];
     index++;
     int counterIndex = index;
@@ -153,7 +152,7 @@ int processingDataPacket(unsigned char *packet, int length, FileInfo *file,
 
     unsigned int l1 = packet[index];
     index++;
-    unsigned int k = l2*256  + l1;
+    unsigned int k = l2 * 256 + l1;
 
     unsigned char expect = getBCC2(packet + 4, k + 4);
 
