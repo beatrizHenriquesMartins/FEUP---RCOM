@@ -1,5 +1,2 @@
-clienteDownload: clienteDownload.o
-	gcc clienteDownload.c -Wall -w -o clienteDownload
-
-clean :
-	rm -f clienteDownload
+all: clientTCP.c url_conf.c
+	gcc -Wall clientTCP.c url_conf.c -o app
