@@ -1,5 +1,3 @@
-/*      (C)2000 FEUP  */
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -10,6 +8,9 @@
 #include <signal.h>
 #include <netdb.h>
 #include <strings.h>
+
+//#include "parser.h"
+#include "tcpProtocol.h"
 
 #define SERVER_PORT 6000
 #define SERVER_ADDR "192.168.28.96"

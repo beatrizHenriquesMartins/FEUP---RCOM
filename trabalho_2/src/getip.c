@@ -13,8 +13,7 @@ int main(int argc, char *argv[]){
         fprintf(stderr,"usage: getip address\n");
         exit(1);
     }
-        
-        
+  
     /*
     struct hostent {
 	char    *h_name;	Official name of the host. 

@@ -1,2 +1,2 @@
-all: clientTCP.c parser.c
-		gcc -Wall clientTCP.c parser.c -o clientTCP
+all: clientTCP.c tcpProtocol.c parser.c
+		gcc -Wall clientTCP.c tcpProtocol.c parser.c -o clientTCP
