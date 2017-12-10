@@ -1,65 +1,65 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+
 #include "parser.h"
 
-int info_parser(data_url *url, char * str){
-    //a vector
-    //strlen(aux) = size var STRING
-    char * aux = malloc(strlen(str));
-    //copy: strcpy(dst, src)
-    strcpy(aux, str);
+void initialize_default_auth(url_info *info) {
+  memcpy(info->user, DEFAULT_USER, strlen(DEFAULT_USER) + 1);
+  memcpy(info->password, DEFAULT_PASSWORD, strlen(DEFAULT_PASSWORD) + 1);
+};
 
-    //allocate memory
-    //calloc( count,  size type);
-    url->type = calloc(strlen(aux), sizeof(char));
-    url->user = calloc(strlen(aux), sizeof(char));
-    url->password = calloc(strlen(aux), sizeof(char));
-    url->host = calloc(strlen(aux), sizeof(char));
-    url->url_path = calloc(strlen(aux), sizeof(char));
-
-
-    strcpy(url->type, aux);
-    //strtok(str, sep) "=" getline
-    aux = strtok(aux+6, ":");
-    
-    strcpy(url->user, aux);
-    aux = strtok(NULL, "@");
-    
-    strcpy(url->password, aux);
-    aux = strtok(NULL, "/");
-    
-    strcpy(url->host, aux);
-    aux = strtok(NULL, "");
-    
-    strcpy(url->url_path, aux);
-
-    if(strlen(aux) == 0){
-        printf("%s\n",url->type);
-        printf("%s\n",url->user );
-        printf("%s\n",url->password);
-        printf("%s\n",url->host);
-        printf("%s\n",url->url_path);
-
-        return 0;
-    }
-    
-    return -1;
+int initialize_auth(url_info *info, char *url, char *at_position) {
+  char *slash = strchr(url, '/'); // slash is never null
+  slash += 2;
+  char *password = strchr(slash, ':');
+  if (password == NULL) {
+    fprintf(stderr, "Your link must contain a ':' separating the username and "
+                    "password!'\n");
+    return 1;
+  }
+  memcpy(info->user, slash, password - slash);
+  info->user[password - slash] = 0;
+  password++;
+  memcpy(info->password, password, at_position - password);
+  info->password[at_position - password] = 0;
+  return 0;
 }
 
-int parser_filename(char * filename, char path[128]){
-    char * aux = malloc(strlen(path));
-    // memcpy(dest, src, size_var)
-    memcpy(aux, path, strlen(path));
+int parse_url(char url[], url_info *info) {
+  if (strncmp(url, LINK_HEADER, strlen(LINK_HEADER)) != 0) {
+    fprintf(stderr, "Your link must begin with 'ftp://'\n");
+    return 1;
+  }
+  char *at_position = strrchr(url, '@');
+  if (at_position == NULL) {
+    initialize_default_auth(info);
+    at_position = url + strlen("ftp://");
+  } else {
+    if (initialize_auth(info, url, at_position) != 0)
+      return 1;
+    at_position++;
+  }
 
-    aux = strtok(path, "/");
-    
-    while(aux != NULL){
-        // memset(b, int_c, length)
-        // Write len bytes of value c (converted to an unsigned char) to the string b
-        // returns its first argument
-        memset(filename,0,strlen(filename));
-        memcpy(filename, aux, strlen(aux));
-        aux = strtok(NULL, "/");
-    }
-    
-    //return 1;
-    return 0;
+  char *first_slash = strchr(at_position, '/');
+  memcpy(info->host_url, at_position, first_slash - at_position);
+  info->host_url[first_slash - at_position] = 0;
+
+  char *last_slash = strrchr(url, '/');
+  last_slash++;
+  memcpy(info->file_path, first_slash, last_slash - first_slash);
+  info->file_path[last_slash - first_slash] = 0;
+
+  memcpy(info->filename, last_slash, strlen(last_slash) + 1);
+  if ((info->host_info = gethostbyname(info->host_url)) == NULL) {
+    herror(info->host_url);
+    exit(1);
+  }
+
+  return 0;
 }

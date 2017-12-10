@@ -1,123 +1,47 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
 #include <netdb.h>
-#include <strings.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "tcpProtocol.h"
+#include "parser.h"
+#include "tcp.h"
 
-#define SERVER_PORT 6000
-#define SERVER_ADDR "192.168.28.96"
+int main(int argc, char **argv) {
 
-// login anonymous
-// password anything
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s <address>\n", argv[0]);
+    exit(1);
+  }
 
+  url_info info;
+  if (parse_url(argv[1], &info) != 0) {
+    fprintf(stderr, "Invalid URL\n");
+    exit(1);
+  }
 
-int init_TCP_protocol(char *address, int port) {
-	int	sockfd;
-    struct sockaddr_in server_addr;
+  int control_socket_fd;
+  if ((control_socket_fd = create_connection(
+           inet_ntoa(*((struct in_addr *)info.host_info->h_addr)),
+           CLIENT_CONNECTION_PORT)) == 0) {
+    fprintf(stderr, "Error opening control connection\n");
+    exit(1);
+  }
 
-    /*server address handling*/
-	bzero((char*)&server_addr,sizeof(server_addr));
-	server_addr.sin_family = AF_INET;
-	/*32 bit Internet address network byte ordered*/
-	server_addr.sin_addr.s_addr = inet_addr(address);
-	/*server TCP port must be network byte ordered */
-	server_addr.sin_port = htons(port);
+  login(control_socket_fd, &info);
+  char data_address[MAX_STRING_SIZE];
+  int port;
+  enter_passive_mode(control_socket_fd, data_address, &port);
 
-    /*open an TCP socket*/
-	if ((sockfd = socket(AF_INET,SOCK_STREAM,0)) < 0) {
-		perror("socket()");
-      	exit(-1);
-    }
+  int data_socket_fd;
+  if ((data_socket_fd = create_connection(data_address, port)) == 0) {
+    fprintf(stderr, "Error opening data connection\n");
+    exit(1);
+  }
+  send_retrieve(control_socket_fd, &info);
+  download_file(data_socket_fd, &info);
+  close_connection(control_socket_fd, data_socket_fd);
 
-	/*connect to the server*/
-    if(connect(sockfd,(struct sockaddr *)&server_addr,sizeof(server_addr)) < 0){
-		perror("connect()");
-		exit(-1);
-	}
-
-    return sockfd;
+  return 0;
 }
-
-int main(int argc, char** argv){
-	if (argc != 2) {
-    	perror("\n\n *Invalid arguments* try: ./clientDownload ftp://[<user>:<password>@]<host>/<url-path>\n\n");
-		return -1;
-  	}
-
-	data_url *url_info = malloc(sizeof(data_url));
-	info_parser(url_info, argv[1]);
-
-	int aux_user = strcmp(url_info->user,"anonymous");
-
-	if(aux_user != 0){
-		perror("* User Error * ");
-		exit(-1);
-	}
-
-  	struct addrinfo hints;
-	struct addrinfo  *res;
-
-  	memset(&hints, 0, sizeof(hints));
-  	hints.ai_family = AF_INET;
-  	hints.ai_socktype = SOCK_STREAM;
-
-    int aux_address_info = getaddrinfo(url_info->host, "21", &hints, &res);
-  	if (aux_address_info != 0) {
-    	perror("* Host Error *\n");
-    	exit(0);
-  	}
-
-  	//open an TCP socket
-	int socket_fd;
-  	if ((socket_fd = socket(res->ai_family, res->ai_socktype, res->ai_protocol)) < 0) {
-    	perror("socket()");
-    	exit(0);
-  	}
-	
-	char answer[MAX_SIZE];
-
-  	connection(socket_fd, res);
-  	read_socket(socket_fd, answer);
-
-
-  	login(socket_fd, url_info);
-
-	printf("%s\n\n", "Logged in");
-
-	char answer_ip[MAX_SIZE];
-	set_passive_mode(socket_fd, answer_ip);
-	printf("Passive mode active! \n");
-
-	char ip_adress[128];
-	char port1[128];
-	char port2[128];
-
-	get_ip(answer_ip, ip_adress, port1, port2);
-	printf("Ip : %s\n", ip_adress);
-
-	int port = atoi(port1) * 256 + atoi(port2);
-	printf("Port : %d\n\n", port);
-
-	int data_fd = init_TCP_protocol(ip_adress, port);
-
-	asking_file(socket_fd,url_info);
-
-	char *filename = calloc(MAX_SIZE, sizeof(char));
-	parser_filename(url_info->url_path, filename);
-	printf("filename: %s\n", filename);
-
-	read_file(data_fd,filename);
-
-	close(data_fd);
-  	close(socket_fd);
-  	exit(0);
-}
-
-

@@ -1,36 +1,27 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <netdb.h>
-#include <string.h>
-#include <strings.h>
-#include <termios.h>
-#include <fcntl.h>
+#ifndef __PARSE_URL_H__
+#define  __PARSE_URL_H__
 
-#define MAX_SIZE 512
+#define LINK_HEADER "ftp://"
+#define DEFAULT_USER "anonymous"
+#define DEFAULT_PASSWORD "mail@domain"
 
-/*
-type struct for url data
-*/
-typedef struct{
-    char * type;
-    char * user;
-    char * password;
-    char * host;
-    char * url_path;
-} data_url;
+//se n existir user e pass - substituir por anonymous, mail@domain
 
-/*
-function to create a url 
-*/
-int info_parser(data_url *url_info, char * str);
+typedef struct {
+  char user[256];
+  char password[256];
+  char host_url[256];
+  struct hostent* host_info;
+  char file_path[256];
+  char filename[256];
+} url_info ;
 
-/*
-function to create a name for the file
-*/
-int parser_filename(char * filename, char path[128]);
+/**
+  * @brief Retrieves the username, password and download file name from a ftp URL
+  * @param url URL with the information to parse_url
+  * @param info Struct to complete with the information read from the URL
+  * @returns 0 if URL is correct
+  */
+int parse_url(char url[], url_info* info);
+
+#endif
