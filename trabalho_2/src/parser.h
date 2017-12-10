@@ -12,7 +12,7 @@
 #include <termios.h>
 #include <fcntl.h>
 
-#define MAXDATASIZE 512
+#define MAX_SIZE 512
 
 /*
 type struct for url data
