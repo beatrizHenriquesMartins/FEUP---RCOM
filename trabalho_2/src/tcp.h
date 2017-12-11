@@ -3,14 +3,14 @@
 #define CLIENT_CONNECTION_PORT 21
 #define MAX_STRING_SIZE 512
 
-int create_connection(char* address, int port);
+int createConnection(char* address, int port);
 
-void login(int control_socket_fd, url_info* info);
+void login(int controlSocketFD, urlInfo* info);
 
-void enter_passive_mode(int sockfd, char* ip, int* port);
+void passiveMode(int sockfd, char* ip, int* port);
 
-void send_retrieve(int control_socket_fd, url_info* info);
+void sendAndRetrieve(int controlSocketFD, urlInfo* info);
 
-int download_file(int data_socket_fd, url_info* info);
+int downloadFile(int dataSocketFD, urlInfo* info);
 
-int close_connection(int control_socket_fd, int data_socket_fd);
+int closeConnection(int controlSocketFD, int dataSocketFD);

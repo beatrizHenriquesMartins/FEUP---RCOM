@@ -9,55 +9,76 @@
 
 #include "parser.h"
 
-void initialize_default_auth(url_info *info) {
+/**
+ * Init Default User (Anonymous:mail@domain)
+ * @method initDefaultUser
+ * @param  info            link info
+ */
+void initDefaultUser(urlInfo *info) {
   memcpy(info->user, DEFAULT_USER, strlen(DEFAULT_USER) + 1);
   memcpy(info->password, DEFAULT_PASSWORD, strlen(DEFAULT_PASSWORD) + 1);
 };
 
-int initialize_auth(url_info *info, char *url, char *at_position) {
-  char *slash = strchr(url, '/'); // slash is never null
-  slash += 2;
-  char *password = strchr(slash, ':');
+/**
+ * Init User
+ * @method initUser
+ * @param  info     link info
+ * @param  url      link
+ * @param  atPos    slash pos
+ * @return
+ */
+int initUser(urlInfo *info, char *url, char *atPos) {
+  char *slashChar = strchr(url, '/'); // slashChar can't be null
+  slashChar += 2;
+  char *password = strchr(slashChar, ':');
   if (password == NULL) {
-    fprintf(stderr, "Your link must contain a ':' separating the username and "
-                    "password!'\n");
+    fprintf(stderr, "There must be a ':' separating the username and "
+                    "password!' on the link\n");
     return 1;
   }
-  memcpy(info->user, slash, password - slash);
-  info->user[password - slash] = 0;
+  memcpy(info->user, slashChar, password - slashChar);
+  info->user[password - slashChar] = 0;
   password++;
-  memcpy(info->password, password, at_position - password);
-  info->password[at_position - password] = 0;
+  memcpy(info->password, password, atPos - password);
+  info->password[atPos - password] = 0;
   return 0;
 }
 
-int parse_url(char url[], url_info *info) {
+/**
+ * parse link to urlInfo struct
+ * @method parseURL
+ * @param  url      string of link
+ * @param  info     urlInfo
+ * @return
+ */
+int parseURL(char url[], urlInfo *info) {
   if (strncmp(url, LINK_HEADER, strlen(LINK_HEADER)) != 0) {
     fprintf(stderr, "Your link must begin with 'ftp://'\n");
     return 1;
   }
-  char *at_position = strrchr(url, '@');
-  if (at_position == NULL) {
-    initialize_default_auth(info);
-    at_position = url + strlen("ftp://");
+  char *atPos = strrchr(url, '@');
+  if (atPos == NULL) {
+    initDefaultUser(info);
+    atPos = url + strlen("ftp://");
   } else {
-    if (initialize_auth(info, url, at_position) != 0)
+    if (initUser(info, url, atPos) != 0)
       return 1;
-    at_position++;
+    atPos++;
   }
 
-  char *first_slash = strchr(at_position, '/');
-  memcpy(info->host_url, at_position, first_slash - at_position);
-  info->host_url[first_slash - at_position] = 0;
+  // find slashes for parsing of information
+  char *firstSlashChar = strchr(atPos, '/');
+  memcpy(info->urlHost, atPos, firstSlashChar - atPos);
+  info->urlHost[firstSlashChar - atPos] = 0;
 
-  char *last_slash = strrchr(url, '/');
-  last_slash++;
-  memcpy(info->file_path, first_slash, last_slash - first_slash);
-  info->file_path[last_slash - first_slash] = 0;
+  char *lastSlashChar = strrchr(url, '/');
+  lastSlashChar++;
+  memcpy(info->path, firstSlashChar, lastSlashChar - firstSlashChar);
+  info->path[lastSlashChar - firstSlashChar] = 0;
 
-  memcpy(info->filename, last_slash, strlen(last_slash) + 1);
-  if ((info->host_info = gethostbyname(info->host_url)) == NULL) {
-    herror(info->host_url);
+  memcpy(info->filename, lastSlashChar, strlen(lastSlashChar) + 1);
+  if ((info->infoHost = gethostbyname(info->urlHost)) == NULL) {
+    herror(info->urlHost);
     exit(1);
   }
 

@@ -15,33 +15,33 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  url_info info;
-  if (parse_url(argv[1], &info) != 0) {
+  urlInfo info;
+  if (parseURL(argv[1], &info) != 0) {
     fprintf(stderr, "Invalid URL\n");
     exit(1);
   }
 
-  int control_socket_fd;
-  if ((control_socket_fd = create_connection(
-           inet_ntoa(*((struct in_addr *)info.host_info->h_addr)),
+  int controlSocketFD;
+  if ((controlSocketFD = createConnection(
+           inet_ntoa(*((struct in_addr *)info.infoHost->h_addr)),
            CLIENT_CONNECTION_PORT)) == 0) {
     fprintf(stderr, "Error opening control connection\n");
     exit(1);
   }
 
-  login(control_socket_fd, &info);
+  login(controlSocketFD, &info);
   char data_address[MAX_STRING_SIZE];
   int port;
-  enter_passive_mode(control_socket_fd, data_address, &port);
+  passiveMode(controlSocketFD, data_address, &port);
 
-  int data_socket_fd;
-  if ((data_socket_fd = create_connection(data_address, port)) == 0) {
+  int dataSocketFD;
+  if ((dataSocketFD = createConnection(data_address, port)) == 0) {
     fprintf(stderr, "Error opening data connection\n");
     exit(1);
   }
-  send_retrieve(control_socket_fd, &info);
-  download_file(data_socket_fd, &info);
-  close_connection(control_socket_fd, data_socket_fd);
+  sendAndRetrieve(controlSocketFD, &info);
+  downloadFile(dataSocketFD, &info);
+  closeConnection(controlSocketFD, dataSocketFD);
 
   return 0;
 }
