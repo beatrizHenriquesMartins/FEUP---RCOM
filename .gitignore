@@ -1,3 +1,5 @@
 
 *.pdf
 .metadata/.log
+
+\.DS_Store
